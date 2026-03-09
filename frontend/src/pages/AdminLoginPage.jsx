@@ -58,9 +58,10 @@ const AdminLoginPage = () => {
           : 'Compte créé avec succès'
       });
       
-      if (user.is_admin) {
-        navigate('/admin');
-      }
+      // Always redirect to admin dashboard - context will handle access control
+      setTimeout(() => {
+        navigate('/admin', { replace: true });
+      }, 100);
     } catch (error) {
       toast.error('Échec de l\'inscription', {
         description: error.response?.data?.detail || 'Vérifiez les informations'

@@ -1,9 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Package, Trash2, Edit, Search, Loader2 } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Package, 
+  Trash2, 
+  Edit, 
+  Search, 
+  Loader2,
+  Save,
+  X,
+  Eye,
+  MoreHorizontal
+} from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
 import {
   Table,
   TableBody,
@@ -13,6 +26,13 @@ import {
   TableRow,
 } from '../components/ui/table';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -21,8 +41,23 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '../components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
+import { Switch } from '../components/ui/switch';
 import { useAuth } from '../context/AuthContext';
 import { productsApi } from '../lib/api';
 import { toast } from 'sonner';
@@ -50,6 +85,13 @@ const AdminProductsPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleting, setDeleting] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+  
+  // Edit state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!authLoading && (!isAuthenticated || !isAdmin)) {
@@ -58,33 +100,91 @@ const AdminProductsPage = () => {
   }, [isAuthenticated, isAdmin, authLoading, navigate]);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await productsApi.getAll({ limit: 100 });
-        setProducts(response.data);
-      } catch (error) {
-        console.error('Failed to fetch products:', error);
-        toast.error('Erreur lors du chargement des produits');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (isAuthenticated && isAdmin) {
-      fetchProducts();
-    }
+    fetchProducts();
   }, [isAuthenticated, isAdmin]);
 
-  const handleDelete = async (productId, productName) => {
+  const fetchProducts = async () => {
+    if (!isAuthenticated || !isAdmin) return;
+    
     try {
-      setDeleting(productId);
-      await productsApi.delete(productId);
-      setProducts(prev => prev.filter(p => p.id !== productId));
-      toast.success('Produit supprimé', { description: productName });
+      setLoading(true);
+      const response = await productsApi.getAll({ limit: 100 });
+      setProducts(response.data);
+    } catch (error) {
+      console.error('Failed to fetch products:', error);
+      toast.error('Erreur lors du chargement des produits');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteClick = (product) => {
+    setProductToDelete(product);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!productToDelete) return;
+    
+    try {
+      setDeleting(productToDelete.id);
+      await productsApi.delete(productToDelete.id);
+      setProducts(prev => prev.filter(p => p.id !== productToDelete.id));
+      toast.success('Produit supprimé', { description: productToDelete.name });
     } catch (error) {
       toast.error('Erreur lors de la suppression');
     } finally {
       setDeleting(null);
+      setDeleteDialogOpen(false);
+      setProductToDelete(null);
+    }
+  };
+
+  const handleEditClick = (product) => {
+    setEditingProduct({ ...product });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditChange = (field, value) => {
+    setEditingProduct(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingProduct) return;
+    
+    try {
+      setSaving(true);
+      
+      const updateData = {
+        name: editingProduct.name,
+        description: editingProduct.description,
+        condition: editingProduct.condition,
+        is_obliterated: editingProduct.is_obliterated,
+        year: editingProduct.year ? parseInt(editingProduct.year) : null,
+        country: editingProduct.country,
+        category: editingProduct.category,
+        rarity: editingProduct.rarity,
+        price: parseFloat(editingProduct.price),
+        estimated_value: editingProduct.estimated_value ? parseFloat(editingProduct.estimated_value) : null,
+        history: editingProduct.history,
+        is_sold: editingProduct.is_sold
+      };
+      
+      await productsApi.update(editingProduct.id, updateData);
+      
+      // Update local state
+      setProducts(prev => prev.map(p => 
+        p.id === editingProduct.id ? { ...p, ...updateData } : p
+      ));
+      
+      toast.success('Produit modifié', { description: editingProduct.name });
+      setEditDialogOpen(false);
+      setEditingProduct(null);
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('Erreur lors de la modification');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -114,7 +214,7 @@ const AdminProductsPage = () => {
           <div className="flex items-center gap-3">
             <Package className="h-8 w-8 text-primary" />
             <h1 className="font-serif text-3xl font-bold text-foreground">
-              Produits ({products.length})
+              Mes produits ({products.length})
             </h1>
           </div>
           
@@ -130,7 +230,10 @@ const AdminProductsPage = () => {
               />
             </div>
             <Link to="/admin/ajouter">
-              <Button className="btn-burgundy">Ajouter</Button>
+              <Button className="btn-burgundy gap-2">
+                <Package className="h-4 w-4" />
+                Scanner un produit
+              </Button>
             </Link>
           </div>
         </div>
@@ -140,13 +243,19 @@ const AdminProductsPage = () => {
           {loading ? (
             <div className="p-8 text-center">
               <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+              <p className="text-muted-foreground mt-2">Chargement...</p>
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="p-8 text-center">
               <Package className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground mb-4">
                 {searchQuery ? 'Aucun produit trouvé' : 'Aucun produit ajouté'}
               </p>
+              {!searchQuery && (
+                <Link to="/admin/ajouter">
+                  <Button className="btn-burgundy">Scanner votre premier produit</Button>
+                </Link>
+              )}
             </div>
           ) : (
             <Table>
@@ -167,7 +276,7 @@ const AdminProductsPage = () => {
                   <TableRow key={product.id} data-testid={`product-row-${product.id}`}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-muted rounded overflow-hidden flex-shrink-0">
+                        <div className="w-12 h-12 bg-muted rounded-lg overflow-hidden flex-shrink-0">
                           <img
                             src={product.image_url || 'https://images.unsplash.com/photo-1767635360163-0633939b9f4b?w=100&h=100&fit=crop'}
                             alt={product.name}
@@ -189,56 +298,52 @@ const AdminProductsPage = () => {
                     </TableCell>
                     <TableCell>{product.country}</TableCell>
                     <TableCell>{conditionLabels[product.condition]}</TableCell>
-                    <TableCell>{rarityLabels[product.rarity]}</TableCell>
-                    <TableCell className="font-mono">{product.price.toFixed(2)} €</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {rarityLabels[product.rarity]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono font-semibold">
+                      {product.price.toFixed(2)} €
+                    </TableCell>
                     <TableCell>
                       {product.is_sold ? (
                         <Badge variant="secondary">Vendu</Badge>
                       ) : (
-                        <Badge className="bg-green-100 text-green-700">Disponible</Badge>
+                        <Badge className="bg-green-100 text-green-700">En vente</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Link to={`/produit/${product.id}`}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">
-                            <Edit className="h-4 w-4" />
+                            <MoreHorizontal className="h-4 w-4" />
                           </Button>
-                        </Link>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="text-destructive hover:text-destructive"
-                              disabled={deleting === product.id}
-                            >
-                              {deleting === product.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Supprimer ce produit ?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Cette action est irréversible. Le produit "{product.name}" sera définitivement supprimé.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Annuler</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDelete(product.id, product.name)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Supprimer
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link to={`/produit/${product.id}`} className="flex items-center gap-2">
+                              <Eye className="h-4 w-4" />
+                              Voir sur le site
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleEditClick(product)}
+                            className="flex items-center gap-2"
+                          >
+                            <Edit className="h-4 w-4" />
+                            Modifier
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteClick(product)}
+                            className="flex items-center gap-2 text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Supprimer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -247,6 +352,214 @@ const AdminProductsPage = () => {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce produit ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le produit "{productToDelete?.name}" sera définitivement supprimé de votre boutique.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting === productToDelete?.id}
+            >
+              {deleting === productToDelete?.id ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Suppression...
+                </>
+              ) : (
+                'Supprimer'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier le produit</DialogTitle>
+            <DialogDescription>
+              Modifiez les informations du produit et enregistrez vos changements.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {editingProduct && (
+            <div className="space-y-4 py-4">
+              {/* Image Preview */}
+              {editingProduct.image_url && (
+                <div className="flex justify-center">
+                  <img 
+                    src={editingProduct.image_url} 
+                    alt={editingProduct.name}
+                    className="max-h-40 rounded-lg"
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <Label>Nom *</Label>
+                  <Input
+                    value={editingProduct.name}
+                    onChange={(e) => handleEditChange('name', e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <Label>Pays *</Label>
+                  <Input
+                    value={editingProduct.country}
+                    onChange={(e) => handleEditChange('country', e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <Label>Année</Label>
+                  <Input
+                    type="number"
+                    value={editingProduct.year || ''}
+                    onChange={(e) => handleEditChange('year', e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <Label>État</Label>
+                  <Select
+                    value={editingProduct.condition}
+                    onValueChange={(v) => handleEditChange('condition', v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(conditionLabels).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Rareté</Label>
+                  <Select
+                    value={editingProduct.rarity}
+                    onValueChange={(v) => handleEditChange('rarity', v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(rarityLabels).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Catégorie</Label>
+                  <Input
+                    value={editingProduct.category || ''}
+                    onChange={(e) => handleEditChange('category', e.target.value)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <Label>Oblitéré</Label>
+                  <Switch
+                    checked={editingProduct.is_obliterated}
+                    onCheckedChange={(checked) => handleEditChange('is_obliterated', checked)}
+                  />
+                </div>
+
+                <div>
+                  <Label>Prix (€) *</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editingProduct.price}
+                    onChange={(e) => handleEditChange('price', e.target.value)}
+                    className="font-mono"
+                  />
+                </div>
+
+                <div>
+                  <Label>Valeur estimée (€)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editingProduct.estimated_value || ''}
+                    onChange={(e) => handleEditChange('estimated_value', e.target.value)}
+                    className="font-mono"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <Label>Description</Label>
+                  <Textarea
+                    value={editingProduct.description || ''}
+                    onChange={(e) => handleEditChange('description', e.target.value)}
+                    rows={3}
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <Label>Histoire</Label>
+                  <Textarea
+                    value={editingProduct.history || ''}
+                    onChange={(e) => handleEditChange('history', e.target.value)}
+                    rows={2}
+                  />
+                </div>
+
+                <div className="col-span-2 flex items-center justify-between p-3 border rounded-lg bg-muted/50">
+                  <div>
+                    <Label>Marquer comme vendu</Label>
+                    <p className="text-xs text-muted-foreground">Le produit ne sera plus visible dans la boutique</p>
+                  </div>
+                  <Switch
+                    checked={editingProduct.is_sold}
+                    onCheckedChange={(checked) => handleEditChange('is_sold', checked)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              <X className="h-4 w-4 mr-2" />
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleSaveEdit} 
+              className="btn-burgundy gap-2"
+              disabled={saving}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  Enregistrer
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

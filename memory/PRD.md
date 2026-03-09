@@ -10,77 +10,72 @@ Site de vente de timbres et enveloppes avec :
 - Filtres : date, rareté, prix, catégorie, pays, oblitéré
 
 ## User Choices
-- **IA**: Ollama + LLaVA (hébergé localement sur PC Windows)
-- **Auth**: Email/mot de passe (JWT)
+- **IA**: Ollama + LLaVA (hébergé localement sur PC Windows 24/7)
+- **Auth**: Email/mot de passe (JWT) - admin uniquement
 - **Paiement**: Stripe + PayPal
-- **Design**: Moderne, thème clair
-- **Hébergement cible**: PC Windows local (24/7)
+- **Design**: Moderne, thème clair "Museum/Gallery"
+- **Hébergement cible**: PC Windows local
 
 ## User Personas
-1. **Administrateur/Vendeur**: Ajoute des produits via upload photo + analyse IA
-2. **Collectionneurs/Acheteurs**: Parcourent le catalogue, filtrent, achètent
-
-## Core Requirements (Static)
-- [x] Authentification admin (JWT)
-- [x] CRUD Produits (timbres/enveloppes)
-- [x] Analyse IA des images (Ollama/LLaVA)
-- [x] Catalogue avec filtres avancés
-- [x] Panier
-- [x] Checkout Stripe + PayPal
-- [x] Gestion des commandes
+1. **Administrateur/Vendeur**: Scanne des produits via caméra/upload, l'IA analyse et propose un prix, confirme avant mise en vente
+2. **Collectionneurs/Acheteurs**: Parcourent le catalogue, filtrent par critères, achètent via Stripe/PayPal
 
 ## What's Been Implemented (Jan 2026)
 
 ### Backend (FastAPI + MongoDB)
-- Auth routes: `/api/auth/register`, `/api/auth/login`, `/api/auth/me`
-- Products CRUD: `/api/products` (GET, POST, PUT, DELETE)
-- Cart: `/api/cart` (GET, POST, DELETE)
-- Orders: `/api/orders` (GET, POST)
-- Payments: `/api/payments/stripe/*`, `/api/payments/paypal/*`
-- AI Analysis: `/api/ai/analyze`, `/api/ai/status`
-- Admin: `/api/admin/stats`, `/api/admin/orders`
+- Auth JWT: register/login/me
+- Products CRUD avec filtres avancés
+- Cart avec session ID
+- Orders avec shipping info
+- Payments Stripe (fonctionnel) + PayPal (nécessite credentials)
+- AI Analysis via Ollama LLaVA
+- Admin stats et gestion commandes
 
-### Frontend (React)
-- Pages: Home, Stamps, Envelopes, ProductDetail, Cart, Checkout, CheckoutSuccess, CheckoutCancel
-- Admin: Login, Dashboard, AddProduct, Products, Orders
-- Components: Navbar, Footer, ProductCard, FilterSidebar
-- Context: AuthContext, CartContext
+### Frontend (React + Tailwind + Shadcn)
+**Pages publiques:**
+- Home: Hero section, catégories Timbres/Enveloppes
+- Stamps/Envelopes: Catalogues avec filtres (oblitération, état, rareté, prix, pays)
+- ProductDetail: Fiche produit complète
+- Cart/Checkout: Panier et paiement
+
+**Pages admin (protégées):**
+- Login: Connexion/Inscription (1er user = admin)
+- Dashboard: Stats (produits, commandes, CA)
+- **Scanner produit** (AMÉLIORÉ): 
+  - Étape 1: Prendre photo (caméra) ou importer image
+  - Étape 2: Analyse IA automatique → remplit tous les champs
+  - Étape 3: Confirmation avec possibilité de modifier avant enregistrement
+- Products: Liste avec modification/suppression inline
+- Orders: Suivi et mise à jour statuts
 
 ### Design System
-- Theme: "Philatelic Curator" - Museum/Gallery aesthetic
-- Fonts: Playfair Display (headings), Inter (body), JetBrains Mono (data)
-- Colors: Warm paper background, Burgundy primary, Royal Blue secondary
+- Theme: "Philatelic Curator" - Warm paper background
+- Fonts: Playfair Display + Inter + JetBrains Mono
+- Colors: Burgundy primary (#7a2048), Royal Blue secondary
 
-## Prioritized Backlog
+## Flux Admin Scanner (Mis à jour)
+1. Cliquer "Scanner un produit"
+2. Prendre photo via caméra OU importer image
+3. L'IA analyse automatiquement:
+   - Détecte état (Neuf/Excellent/Bon/Correct/Usé)
+   - Vérifie oblitération
+   - Identifie pays, année, catégorie
+   - Estime rareté
+   - Calcule valeur et propose prix de vente
+4. Affichage des résultats pour vérification
+5. Possibilité de modifier les infos
+6. Confirmation → Enregistrement → Mise en vente
 
-### P0 (Critical - Done)
-- [x] Basic auth flow
-- [x] Product display with filters
-- [x] Cart functionality
-- [x] Checkout with Stripe
-- [x] Admin product management
+## Next Tasks (P1)
+1. **Pour l'utilisateur**:
+   - Installer Ollama: `winget install Ollama.Ollama`
+   - Installer LLaVA: `ollama pull llava`
+   - Lancer Ollama: `ollama serve`
+2. Configurer PayPal credentials dans .env
+3. Configurer reverse proxy pour accès externe (ngrok/Cloudflare Tunnel)
 
-### P1 (High Priority - Pending)
-- [ ] PayPal credentials configuration (user needs to add PAYPAL_CLIENT_ID/SECRET)
-- [ ] Ollama setup guide for user's Windows PC
-- [ ] Product image upload to cloud storage (currently base64)
-- [ ] Email notifications for orders
-
-### P2 (Medium Priority)
-- [ ] Product search by text
-- [ ] User accounts for buyers (wishlist, order history)
-- [ ] Inventory management (stock levels)
-- [ ] Shipping cost calculator
-
-### P3 (Nice to Have)
-- [ ] Multi-currency support
-- [ ] Product reviews
-- [ ] Related products suggestions
-- [ ] Analytics dashboard
-
-## Next Tasks
-1. User to install Ollama + LLaVA on their Windows PC
-2. Configure PayPal sandbox/production credentials
-3. Set up reverse proxy (ngrok/Cloudflare Tunnel) for local hosting
-4. Add product image storage solution
-5. Deploy to user's local environment
+## P2 Features
+- Email notifications (commandes)
+- Recherche textuelle produits
+- Historique des prix
+- Export CSV des commandes

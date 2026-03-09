@@ -1,0 +1,170 @@
+{
+  "design_identity": {
+    "name": "The Philatelic Curator",
+    "tone": "Sophisticated, Historical, Precise, Trustworthy",
+    "aesthetic": "Museum Archive meets Modern Gallery",
+    "theme_mode": "light",
+    "core_philosophy": "Digital Tactility: The user should feel like they are handling rare paper artifacts."
+  },
+  "typography": {
+    "headings": {
+      "family": "Playfair Display, serif",
+      "weights": ["400", "600", "700"],
+      "usage": "All section titles, hero text, and product names. Use strict tracking-tight.",
+      "fallback": "Georgia, serif"
+    },
+    "body": {
+      "family": "Inter, sans-serif",
+      "weights": ["300", "400", "500"],
+      "usage": "Descriptions, UI elements, buttons.",
+      "fallback": "system-ui, sans-serif"
+    },
+    "data_mono": {
+      "family": "JetBrains Mono, monospace",
+      "weights": ["400"],
+      "usage": "Price, Rarity Score, Date, Serial Numbers.",
+      "fallback": "monospace"
+    }
+  },
+  "colors": {
+    "palette": {
+      "background": {
+        "primary": "hsl(40, 20%, 97%)",
+        "secondary": "hsl(40, 10%, 94%)",
+        "card": "#FFFFFF",
+        "overlay": "rgba(255, 255, 255, 0.8)"
+      },
+      "foreground": {
+        "primary": "hsl(220, 15%, 20%)", 
+        "secondary": "hsl(220, 10%, 40%)",
+        "muted": "hsl(220, 5%, 60%)"
+      },
+      "brand": {
+        "primary": "hsl(335, 70%, 30%)", 
+        "primary_foreground": "#FFFFFF",
+        "secondary": "hsl(210, 30%, 25%)", 
+        "accent": "hsl(35, 60%, 50%)" 
+      },
+      "functional": {
+        "border": "hsl(220, 10%, 85%)",
+        "success": "hsl(140, 40%, 40%)",
+        "error": "hsl(0, 70%, 40%)",
+        "warning": "hsl(35, 80%, 50%)"
+      }
+    },
+    "usage_rules": [
+      "Backgrounds must be warm off-white (Paper), NOT sterile #FFFFFF.",
+      "Brand Primary (Burgundy) is for CTAs and 'Add to Cart' buttons only.",
+      "Use Brand Secondary (Royal Blue) for Trust indicators and Info.",
+      "Gold Accent is for 'Rare' or 'Mint Condition' tags only."
+    ]
+  },
+  "visual_enhancers": {
+    "shadows": {
+      "card": "0 2px 4px rgba(0,0,0,0.02), 0 8px 16px rgba(0,0,0,0.02)",
+      "hover": "0 10px 30px rgba(0,0,0,0.04), 0 4px 8px rgba(0,0,0,0.02)",
+      "float": "0 20px 40px -10px rgba(0,0,0,0.08)"
+    },
+    "borders": {
+      "card": "1px solid hsl(220, 10%, 90%)",
+      "active": "1px solid hsl(335, 70%, 30%)"
+    },
+    "effects": {
+      "glass": "backdrop-filter: blur(8px); background: rgba(255,255,255,0.7);",
+      "perforation_mask": "radial-gradient(circle, transparent 3px, black 3.5px) left top/10px 10px space",
+      "paper_texture": "url('/assets/noise.png') opacity-50"
+    }
+  },
+  "layout_strategies": {
+    "container": {
+      "max_width": "max-w-7xl",
+      "padding": "px-4 md:px-8 lg:px-12",
+      "alignment": "mx-auto"
+    },
+    "grid_system": {
+      "marketing": "grid-cols-1 md:grid-cols-12 gap-8",
+      "catalog": "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
+      "dashboard": "grid-cols-1 md:grid-cols-4 gap-6"
+    }
+  },
+  "components": {
+    "StampCard": {
+      "description": "A card that looks like a mounted stamp in a collector's album.",
+      "specs": [
+        "White padding (p-6) around the image to simulate a mount.",
+        "Optional CSS mask for perforated edges on the image itself.",
+        "Typography: Serif for title, Mono for price.",
+        "Hover: Subtle lift (-4px) + 'Loupe' icon fade in."
+      ]
+    },
+    "HeroSection": {
+      "type": "Split Asymmetrical",
+      "content": "Left: Large serif typography + CTA. Right: Floating 3D-style stamp composition.",
+      "background": "Subtle topographical map or postmark pattern opacity 0.05."
+    },
+    "AIUploadWidget": {
+      "style": "Technical/Scientific",
+      "animation": "Scanning beam (linear gradient) moving top to bottom over the image.",
+      "status_indicators": "Steps: Upload -> Scanning -> Identification -> Valuation."
+    }
+  },
+  "image_assets": {
+    "hero_bg": {
+      "url": "https://images.unsplash.com/photo-1767635360163-0633939b9f4b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwyfHx2aW50YWdlJTIwcG9zdGFnZSUyMHN0YW1wJTIwY29sbGVjdGlvbnxlbnwwfHx8fDE3NzMwOTczMzR8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Vintage Stamp Collection",
+      "usage": "Hero background or subtle overlay"
+    },
+    "category_stamps": {
+      "url": "https://images.unsplash.com/photo-1767869168428-910a487a11b0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwzfHx2aW50YWdlJTIwcG9zdGFnZSUyMHN0YW1wJTIwY29sbGVjdGlvbnxlbnwwfHx8fDE3NzMwOTczMzR8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Rare Stamps Details",
+      "usage": "Stamp Category Card"
+    },
+    "category_envelopes": {
+      "url": "https://images.unsplash.com/photo-1767869171276-afe238e1df22?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHw0fHx2aW50YWdlJTIwcG9zdGFnZSUyMHN0YW1wJTIwY29sbGVjdGlvbnxlbnwwfHx8fDE3NzMwOTczMzR8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Antique Envelopes",
+      "usage": "Envelope Category Card"
+    },
+    "magnifying_glass": {
+      "url": "https://images.unsplash.com/photo-1762180980045-4d7c5a6c0fc9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTF8MHwxfHNlYXJjaHwxfHxhbnRpcXVlJTIwYnJhc3MlMjBtYWduaWZ5aW5nJTIwZ2xhc3N8ZW58MHx8fHwxNzczMDk3MzQ3fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Brass Magnifying Glass",
+      "usage": "About Us or Inspection Feature Promo"
+    },
+    "ai_tech_bg": {
+      "url": "https://images.unsplash.com/photo-1765046255517-412341954c4c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA4Mzl8MHwxfHNlYXJjaHwyfHxkaWdpdGFsJTIwZGF0YSUyMGdyaWQlMjBhYnN0cmFjdCUyMHdoaXRlJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3NzMwOTczNDl8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Abstract Data Grid",
+      "usage": "Background for AI Analysis Section"
+    },
+    "gallery_interior": {
+      "url": "https://images.unsplash.com/photo-1770584427107-d1649242c2b1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzZ8MHwxfHNlYXJjaHwyfHxtdXNldW0lMjBhcnQlMjBnYWxsZXJ5JTIwaW50ZXJpb3IlMjBicmlnaHR8ZW58MHx8fHwxNzczMDk3MzM3fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Museum Gallery",
+      "usage": "About Page Hero"
+    }
+  },
+  "libraries": {
+    "icons": "lucide-react",
+    "animation": "framer-motion",
+    "components": "shadcn/ui",
+    "toast": "sonner"
+  },
+  "instructions_to_main_agent": [
+    "Install 'lucide-react' if not present.",
+    "Install '@fontsource/playfair-display' and '@fontsource/inter' and '@fontsource/jetbrains-mono'.",
+    "Use 'sonner' for all notifications.",
+    "Implement a custom 'Perforation' border using CSS mask or SVG for the stamp cards.",
+    "The AI Analysis page should feel like a 'Lab' - clean, white, mono fonts for data.",
+    "The Shop page should feel like a 'Gallery' - warm background, elegant serif fonts.",
+    "Ensure all interactive elements have data-testid attributes.",
+    "Use the specific HEX codes provided in colors.palette for the Tailwind config.",
+    "Do NOT use standard pure black (#000000). Use the Ink Blue (#2c3e50 equivalent) defined."
+  ],
+  "UNIVERSAL_GUIDELINES": [
+    "You tend to converge toward generic, 'on distribution' outputs. Avoid this.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur).",
+    "You MUST NOT apply universal transition. Eg: transition: all.",
+    "You MUST NOT center align the app container.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects.",
+    "Use 2-3x more spacing than feels comfortable."
+  ]
+}

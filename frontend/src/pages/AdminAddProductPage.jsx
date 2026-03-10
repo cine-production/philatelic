@@ -64,7 +64,8 @@ const AdminAddProductPage = () => {
   const canvasRef = useRef(null);
   
   // States
-  const [aiStatus, setAiStatus] = useState({ status: 'checking' });
+  const [aiProviders, setAiProviders] = useState([]);
+  const [selectedProvider, setSelectedProvider] = useState('gemini');
   const [step, setStep] = useState('capture'); // 'capture', 'analyzing', 'confirm', 'editing'
   const [imageData, setImageData] = useState(null);
   const [cameraActive, setCameraActive] = useState(false);
@@ -104,9 +105,15 @@ const AdminAddProductPage = () => {
     const checkAI = async () => {
       try {
         const response = await aiApi.checkStatus();
-        setAiStatus(response.data);
+        setAiProviders(response.data.providers || []);
+        // Select first available provider
+        const available = response.data.providers?.find(p => p.status === 'available');
+        if (available) {
+          setSelectedProvider(available.id);
+        }
       } catch (error) {
-        setAiStatus({ status: 'offline', message: 'Impossible de se connecter à l\'IA' });
+        console.error('AI status check failed:', error);
+        setAiProviders([]);
       }
     };
     checkAI();
@@ -164,8 +171,13 @@ const AdminAddProductPage = () => {
       setImageData(dataUrl);
       stopCamera();
       
-      // Automatically start analysis
-      analyzeImage(dataUrl);
+      // Start analysis or go to editing if manual
+      if (selectedProvider === 'manual') {
+        setFormData(prev => ({ ...prev, image_url: dataUrl }));
+        setStep('editing');
+      } else {
+        analyzeImage(dataUrl);
+      }
     }
   };
 
@@ -175,18 +187,32 @@ const AdminAddProductPage = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImageData(reader.result);
-        // Automatically start analysis
-        analyzeImage(reader.result);
+        // Start analysis or go to editing if manual
+        if (selectedProvider === 'manual') {
+          setFormData(prev => ({ ...prev, image_url: reader.result }));
+          setStep('editing');
+        } else {
+          analyzeImage(reader.result);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
   const analyzeImage = async (imageDataUrl) => {
-    if (aiStatus.status !== 'online' || !aiStatus.has_llava) {
+    // Manual mode - skip AI analysis
+    if (selectedProvider === 'manual') {
+      setFormData(prev => ({ ...prev, image_url: imageDataUrl }));
+      setStep('editing');
+      return;
+    }
+    
+    const provider = aiProviders.find(p => p.id === selectedProvider);
+    if (!provider || provider.status !== 'available') {
       toast.error('IA non disponible', {
-        description: 'Assurez-vous qu\'Ollama est en cours d\'exécution avec LLaVA'
+        description: 'Veuillez sélectionner un provider IA disponible ou utiliser la saisie manuelle'
       });
+      setFormData(prev => ({ ...prev, image_url: imageDataUrl }));
       setStep('editing');
       return;
     }
@@ -200,7 +226,7 @@ const AdminAddProductPage = () => {
       
       setAnalysisProgress(30);
       
-      const response = await aiApi.analyze(base64);
+      const response = await aiApi.analyze(base64, selectedProvider);
       const analysis = response.data;
       
       setAnalysisProgress(80);
@@ -353,41 +379,71 @@ const AdminAddProductPage = () => {
               Scanner un produit
             </h1>
           </div>
-          
-          {/* AI Status Badge */}
-          <Badge 
-            variant={aiStatus.status === 'online' && aiStatus.has_llava ? 'default' : 'destructive'}
-            className="gap-1"
-          >
-            <span className={`w-2 h-2 rounded-full ${aiStatus.status === 'online' && aiStatus.has_llava ? 'bg-green-400' : 'bg-red-400'}`} />
-            IA {aiStatus.status === 'online' && aiStatus.has_llava ? 'Connectée' : 'Hors ligne'}
-          </Badge>
         </div>
 
-        {/* AI Status Alert */}
-        {aiStatus.status !== 'online' && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>IA non disponible</AlertTitle>
-            <AlertDescription>
-              Assurez-vous qu'Ollama est en cours d'exécution sur votre PC avec le modèle LLaVA.
-              <br />
-              <code className="bg-destructive/20 px-2 py-1 rounded mt-2 inline-block">
-                ollama serve & ollama pull llava
-              </code>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {aiStatus.status === 'online' && !aiStatus.has_llava && (
-          <Alert className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Modèle LLaVA requis</AlertTitle>
-            <AlertDescription>
-              Installez le modèle LLaVA: <code className="bg-muted px-2 py-1 rounded">ollama pull llava</code>
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* AI Provider Selector */}
+        <div className="bg-card rounded-lg border border-border p-4 mb-6">
+          <Label className="text-sm font-medium mb-3 block">Choisir l'IA pour l'analyse</Label>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {aiProviders.map((provider) => (
+              <button
+                key={provider.id}
+                onClick={() => provider.status === 'available' && setSelectedProvider(provider.id)}
+                disabled={provider.status !== 'available'}
+                className={`
+                  p-4 rounded-lg border-2 text-left transition-all
+                  ${selectedProvider === provider.id 
+                    ? 'border-primary bg-primary/5' 
+                    : provider.status === 'available'
+                      ? 'border-border hover:border-primary/50'
+                      : 'border-border opacity-50 cursor-not-allowed'
+                  }
+                `}
+                data-testid={`ai-provider-${provider.id}`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-medium">{provider.name}</span>
+                  {provider.recommended && provider.status === 'available' && (
+                    <Badge variant="secondary" className="text-xs">Recommandé</Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">{provider.description}</p>
+                <div className="mt-2">
+                  {provider.status === 'available' ? (
+                    <Badge className="bg-green-100 text-green-700 text-xs">Disponible</Badge>
+                  ) : provider.status === 'not_configured' ? (
+                    <Badge variant="outline" className="text-xs">Non configuré</Badge>
+                  ) : provider.status === 'offline' ? (
+                    <Badge variant="destructive" className="text-xs">Hors ligne</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs">{provider.status}</Badge>
+                  )}
+                </div>
+              </button>
+            ))}
+            
+            {/* Manual option */}
+            <button
+              onClick={() => setSelectedProvider('manual')}
+              className={`
+                p-4 rounded-lg border-2 text-left transition-all
+                ${selectedProvider === 'manual' 
+                  ? 'border-primary bg-primary/5' 
+                  : 'border-border hover:border-primary/50'
+                }
+              `}
+              data-testid="ai-provider-manual"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-medium">Saisie manuelle</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Remplir les informations moi-même</p>
+              <div className="mt-2">
+                <Badge className="bg-blue-100 text-blue-700 text-xs">Toujours disponible</Badge>
+              </div>
+            </button>
+          </div>
+        </div>
 
         {/* Step Indicator */}
         <div className="flex items-center justify-center gap-4 mb-8">

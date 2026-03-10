@@ -32,7 +32,7 @@ export const CartProvider = ({ children }) => {
   const [sessionId, setSessionId] = useState(() => {
     let id = localStorage.getItem('cart_session_id');
     if (!id) {
-      id = crypto.randomUUID();
+      id = generateUUID();
       localStorage.setItem('cart_session_id', id);
     }
     return id;

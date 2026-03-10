@@ -57,7 +57,10 @@ export const paymentsApi = {
 
 // AI API
 export const aiApi = {
-  analyze: (imageBase64) => api.post('/ai/analyze', { image_base64: imageBase64 }),
+  analyze: (imageBase64, provider = 'gemini') => api.post('/ai/analyze', { 
+    image_base64: imageBase64,
+    provider: provider 
+  }),
   checkStatus: () => api.get('/ai/status')
 };
 

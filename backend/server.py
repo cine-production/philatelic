@@ -42,6 +42,9 @@ OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:11434')
 # Google Gemini Configuration (free tier)
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 
+# Google Gemini Configuration (free tier)
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+
 app = FastAPI(title="Philatelic Curator API")
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
@@ -178,6 +181,7 @@ class OrderResponse(BaseModel):
 
 class AIAnalysisRequest(BaseModel):
     image_base64: str
+    provider: str = "gemini"  # "gemini", "ollama", or "manual"
 
 class AIAnalysisResponse(BaseModel):
     condition: str
@@ -861,14 +865,8 @@ async def capture_paypal_order(paypal_order_id: str):
         }
 
 # ============== AI ANALYSIS ROUTES ==============
-@api_router.post("/ai/analyze", response_model=AIAnalysisResponse)
-async def analyze_image(request: AIAnalysisRequest, admin: Dict = Depends(require_admin)):
-    """
-    Analyze a stamp or envelope image using Ollama LLaVA model.
-    The OLLAMA_URL should point to the user's local Ollama instance.
-    """
-    
-    prompt = """Analyze this philatelic item (stamp or envelope) image and provide the following information in JSON format:
+
+AI_PROMPT = """Analyze this philatelic item (stamp or envelope) image and provide the following information in JSON format:
 
 {
     "condition": "mint|excellent|good|fair|poor",
@@ -884,83 +882,190 @@ async def analyze_image(request: AIAnalysisRequest, admin: Dict = Depends(requir
     "confidence": confidence level 0-1 (number)
 }
 
-Be precise and realistic with valuations. Consider condition, rarity, age, and market demand."""
+Be precise and realistic with valuations. Consider condition, rarity, age, and market demand. Return ONLY valid JSON."""
 
-    try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.post(
-                f"{OLLAMA_URL}/api/generate",
-                json={
-                    "model": "llava",
-                    "prompt": prompt,
-                    "images": [request.image_base64],
-                    "stream": False,
-                    "format": "json"
-                }
-            )
-            
-            if response.status_code != 200:
-                raise HTTPException(status_code=503, detail="AI service unavailable. Make sure Ollama is running with LLaVA model.")
-            
-            result = response.json()
-            ai_response = result.get("response", "{}")
-            
-            import json
-            try:
-                parsed = json.loads(ai_response)
-            except json.JSONDecodeError:
-                # Try to extract JSON from response
-                import re
-                json_match = re.search(r'\{[^{}]*\}', ai_response, re.DOTALL)
-                if json_match:
-                    parsed = json.loads(json_match.group())
-                else:
-                    raise HTTPException(status_code=500, detail="Failed to parse AI response")
-            
-            return AIAnalysisResponse(
-                condition=parsed.get("condition", "good"),
-                is_obliterated=parsed.get("is_obliterated", False),
-                year=parsed.get("year"),
-                country=parsed.get("country", "Unknown"),
-                category=parsed.get("category", "General"),
-                rarity=parsed.get("rarity", "common"),
-                estimated_value=float(parsed.get("estimated_value", 1.0)),
-                suggested_price=float(parsed.get("suggested_price", 1.5)),
-                history=parsed.get("history"),
-                description=parsed.get("description", ""),
-                confidence=float(parsed.get("confidence", 0.5))
-            )
-            
-    except httpx.ConnectError:
-        raise HTTPException(
-            status_code=503, 
-            detail="Cannot connect to Ollama. Please ensure Ollama is running on your machine with the LLaVA model installed."
+async def analyze_with_gemini(image_base64: str) -> dict:
+    """Analyze image using Google Gemini Flash (free tier)"""
+    import google.generativeai as genai
+    
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="Gemini API key not configured. Add GEMINI_API_KEY to .env")
+    
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    
+    # Decode base64 image
+    import base64
+    image_bytes = base64.b64decode(image_base64)
+    
+    # Create image part for Gemini
+    image_part = {
+        "mime_type": "image/jpeg",
+        "data": image_bytes
+    }
+    
+    response = model.generate_content([AI_PROMPT, image_part])
+    
+    return response.text
+
+async def analyze_with_ollama(image_base64: str) -> dict:
+    """Analyze image using local Ollama LLaVA"""
+    async with httpx.AsyncClient(timeout=180.0) as client:
+        response = await client.post(
+            f"{OLLAMA_URL}/api/generate",
+            json={
+                "model": "llava",
+                "prompt": AI_PROMPT,
+                "images": [image_base64],
+                "stream": False,
+                "format": "json"
+            }
         )
+        
+        if response.status_code != 200:
+            raise HTTPException(status_code=503, detail="Ollama unavailable")
+        
+        return response.json().get("response", "{}")
+
+def parse_ai_response(ai_response: str) -> dict:
+    """Parse AI response to extract JSON"""
+    import json
+    import re
+    
+    # Try direct JSON parse
+    try:
+        return json.loads(ai_response)
+    except json.JSONDecodeError:
+        pass
+    
+    # Try to extract JSON from response
+    json_match = re.search(r'\{[^{}]*\}', ai_response, re.DOTALL)
+    if json_match:
+        try:
+            return json.loads(json_match.group())
+        except json.JSONDecodeError:
+            pass
+    
+    # Try to find JSON with nested braces
+    json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
+    if json_match:
+        try:
+            return json.loads(json_match.group())
+        except json.JSONDecodeError:
+            pass
+    
+    raise HTTPException(status_code=500, detail="Failed to parse AI response")
+
+@api_router.post("/ai/analyze", response_model=AIAnalysisResponse)
+async def analyze_image(request: AIAnalysisRequest, admin: Dict = Depends(require_admin)):
+    """
+    Analyze a stamp or envelope image using selected AI provider.
+    Providers: 'gemini' (Google Gemini Flash, free), 'ollama' (local LLaVA)
+    """
+    
+    try:
+        if request.provider == "gemini":
+            ai_response = await analyze_with_gemini(request.image_base64)
+        elif request.provider == "ollama":
+            ai_response = await analyze_with_ollama(request.image_base64)
+        else:
+            raise HTTPException(status_code=400, detail=f"Unknown provider: {request.provider}")
+        
+        parsed = parse_ai_response(ai_response)
+        
+        # Validate and normalize rarity
+        valid_rarities = ["common", "uncommon", "rare", "very_rare", "exceptional"]
+        rarity = parsed.get("rarity", "common").lower().replace(" ", "_")
+        if rarity not in valid_rarities:
+            rarity = "common"
+        
+        # Validate condition
+        valid_conditions = ["mint", "excellent", "good", "fair", "poor"]
+        condition = parsed.get("condition", "good").lower()
+        if condition not in valid_conditions:
+            condition = "good"
+        
+        return AIAnalysisResponse(
+            condition=condition,
+            is_obliterated=bool(parsed.get("is_obliterated", False)),
+            year=parsed.get("year") if isinstance(parsed.get("year"), int) else None,
+            country=str(parsed.get("country", "Unknown")),
+            category=str(parsed.get("category", "General")),
+            rarity=rarity,
+            estimated_value=float(parsed.get("estimated_value", 1.0)),
+            suggested_price=float(parsed.get("suggested_price", 1.5)),
+            history=parsed.get("history"),
+            description=str(parsed.get("description", "")),
+            confidence=min(1.0, max(0.0, float(parsed.get("confidence", 0.7))))
+        )
+        
+    except HTTPException:
+        raise
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="Cannot connect to Ollama. Make sure it's running.")
     except httpx.TimeoutException:
-        raise HTTPException(status_code=504, detail="AI analysis timed out. Please try again.")
+        raise HTTPException(status_code=504, detail="AI analysis timed out. Try Gemini for faster results.")
+    except Exception as e:
+        logger.error(f"AI analysis error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI analysis failed: {str(e)}")
 
 @api_router.get("/ai/status")
 async def check_ai_status():
-    """Check if the Ollama AI service is available"""
+    """Check available AI providers"""
+    result = {
+        "providers": []
+    }
+    
+    # Check Gemini
+    if GEMINI_API_KEY:
+        result["providers"].append({
+            "id": "gemini",
+            "name": "Google Gemini Flash",
+            "status": "available",
+            "description": "Rapide, gratuit (15 req/min)",
+            "recommended": True
+        })
+    else:
+        result["providers"].append({
+            "id": "gemini",
+            "name": "Google Gemini Flash",
+            "status": "not_configured",
+            "description": "Ajoutez GEMINI_API_KEY dans .env",
+            "recommended": True
+        })
+    
+    # Check Ollama
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.get(f"{OLLAMA_URL}/api/tags")
             if response.status_code == 200:
                 models = response.json().get("models", [])
                 has_llava = any("llava" in m.get("name", "").lower() for m in models)
-                return {
-                    "status": "online",
-                    "ollama_url": OLLAMA_URL,
+                result["providers"].append({
+                    "id": "ollama",
+                    "name": "Ollama LLaVA (Local)",
+                    "status": "available" if has_llava else "no_model",
+                    "description": "Gratuit, hors ligne, lent (~2 min)" if has_llava else "Installez LLaVA: ollama pull llava",
                     "has_llava": has_llava,
                     "models": [m.get("name") for m in models]
-                }
-            return {"status": "error", "message": "Ollama responded but with error"}
-    except Exception as e:
-        return {
+                })
+            else:
+                result["providers"].append({
+                    "id": "ollama",
+                    "name": "Ollama LLaVA (Local)",
+                    "status": "error",
+                    "description": "Ollama répond mais avec erreur"
+                })
+    except Exception:
+        result["providers"].append({
+            "id": "ollama",
+            "name": "Ollama LLaVA (Local)",
             "status": "offline",
-            "message": f"Cannot connect to Ollama at {OLLAMA_URL}",
-            "error": str(e)
-        }
+            "description": "Ollama non démarré (ollama serve)"
+        })
+    
+    return result
+
 
 # ============== ADMIN ROUTES ==============
 @api_router.get("/admin/orders", response_model=List[OrderResponse])

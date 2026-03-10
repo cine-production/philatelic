@@ -39,6 +39,8 @@ PAYPAL_MODE = os.environ.get('PAYPAL_MODE', 'sandbox')
 
 # Ollama Configuration (local AI)
 OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:11434')
+# Google Gemini Configuration (free tier)
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 
 app = FastAPI(title="Philatelic Curator API")
 api_router = APIRouter(prefix="/api")

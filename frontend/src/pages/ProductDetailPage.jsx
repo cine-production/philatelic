@@ -178,10 +178,22 @@ const ProductDetailPage = () => {
                   Valeur estimée: <span className="line-through">{product.estimated_value.toFixed(2)} €</span>
                 </p>
               )}
+              {/* Stock Status */}
+              {product.stock_quantity !== undefined && (
+                <div className="mt-2">
+                  {product.stock_quantity > 0 ? (
+                    <Badge className="bg-green-100 text-green-700">
+                      En stock ({product.stock_quantity} disponible{product.stock_quantity > 1 ? 's' : ''})
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive">Rupture de stock</Badge>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Add to Cart */}
-            {!product.is_sold ? (
+            {!product.is_sold && (product.stock_quantity === undefined || product.stock_quantity > 0) ? (
               <Button
                 size="lg"
                 className="btn-burgundy w-full md:w-auto gap-2"
@@ -191,6 +203,10 @@ const ProductDetailPage = () => {
               >
                 <ShoppingCart className="h-5 w-5" />
                 Ajouter au panier
+              </Button>
+              ) : product.stock_quantity === 0 ? (
+              <Button size="lg" disabled className="w-full md:w-auto">
+                Rupture de stock
               </Button>
             ) : (
               <Button size="lg" disabled className="w-full md:w-auto">

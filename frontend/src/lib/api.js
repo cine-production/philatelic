@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://apiphilatelic.servicetiers.fr';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -39,8 +39,14 @@ export const productsApi = {
 export const ordersApi = {
   create: (data) => api.post('/orders', data),
   getById: (id) => api.get(`/orders/${id}`),
+  track: (trackingCode) => api.get(`/orders/track/${trackingCode}`),
+  confirmReception: (trackingCode) => api.post(`/orders/track/${trackingCode}/confirm-reception`),
+   downloadPdf: (trackingCode) => `${API_URL}/api/orders/track/${trackingCode}/pdf`,
   getAll: (params = {}) => api.get('/admin/orders', { params }),
-  updateStatus: (id, status) => api.put(`/admin/orders/${id}/status`, null, { params: { status } })
+  updateStatus: (id, status) => api.put(`/admin/orders/${id}/status`, null, { params: { status } }),
+  update: (id, data) => api.put(`/admin/orders/${id}`, data),
+  getForPrint: (id) => api.get(`/admin/orders/${id}/print`),
+  downloadAdminPdf: (id) => `${API_URL}/api/admin/orders/${id}/pdf`
 };
 
 // Payments API
@@ -61,7 +67,8 @@ export const aiApi = {
     image_base64: imageBase64,
     provider: provider 
   }),
-  checkStatus: () => api.get('/ai/status')
+  checkStatus: () => api.get('/ai/status'),
+  generateClassificationId: (data) => api.post('/ai/generate-classification-id', data)
 };
 
 // Admin API

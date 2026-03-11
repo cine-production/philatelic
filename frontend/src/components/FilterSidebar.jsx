@@ -228,7 +228,7 @@ const FilterSidebar = ({ filters, setFilters, countries = [], categories = [] })
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Tous les pays</SelectItem>
-                  {countries.map((country) => (
+                  {countries.filter(c => c && c.trim() !== '').map((country) => (
                     <SelectItem key={country} value={country}>
                       {country}
                     </SelectItem>
@@ -256,7 +256,7 @@ const FilterSidebar = ({ filters, setFilters, countries = [], categories = [] })
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Toutes les catégories</SelectItem>
-                  {categories.map((cat) => (
+                  {categories.filter(c => c && c.trim() !== '').map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {cat}
                     </SelectItem>

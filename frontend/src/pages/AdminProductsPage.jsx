@@ -167,7 +167,9 @@ const AdminProductsPage = () => {
         price: parseFloat(editingProduct.price),
         estimated_value: editingProduct.estimated_value ? parseFloat(editingProduct.estimated_value) : null,
         history: editingProduct.history,
-        is_sold: editingProduct.is_sold
+        is_sold: editingProduct.is_sold,
+        tock_quantity: editingProduct.stock_quantity ? parseInt(editingProduct.stock_quantity) : 1,
+        classification_id: editingProduct.classification_id
       };
       
       await productsApi.update(editingProduct.id, updateData);
@@ -502,6 +504,30 @@ const AdminProductsPage = () => {
                     className="font-mono"
                   />
                 </div>
+
+                
+                <div>
+                  <Label>Quantité en stock</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editingProduct.stock_quantity ?? 1}
+                    onChange={(e) => handleEditChange('stock_quantity', e.target.value)}
+                    data-testid="edit-stock-quantity"
+                  />
+                </div>
+
+                <div>
+                  <Label>ID Classification</Label>
+                  <Input
+                    value={editingProduct.classification_id || ''}
+                    onChange={(e) => handleEditChange('classification_id', e.target.value)}
+                    placeholder="Ex: 1960-FR-COM-001"
+                    className="font-mono"
+                    data-testid="edit-classification-id"
+                  />
+                </div>
+
 
                 <div className="col-span-2">
                   <Label>Description</Label>

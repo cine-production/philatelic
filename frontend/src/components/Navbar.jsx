@@ -23,6 +23,7 @@ const Navbar = () => {
     { href: '/', label: 'Accueil' },
     { href: '/timbres', label: 'Timbres' },
     { href: '/enveloppes', label: 'Enveloppes' },
+    { href: '/suivi', label: 'Suivi commande' },
   ];
 
   const isActive = (path) => location.pathname === path;

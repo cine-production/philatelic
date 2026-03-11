@@ -15,6 +15,7 @@ const CheckoutPage = () => {
   const { cart, sessionId } = useCart();
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('stripe');
+  const [customerEmail, setCustomerEmail] = useState('');
   const [shippingInfo, setShippingInfo] = useState({
     name: '',
     address: '',
@@ -31,8 +32,15 @@ const CheckoutPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!shippingInfo.name || !shippingInfo.address || !shippingInfo.city || !shippingInfo.postal_code) {
+    if (!customerEmail || !shippingInfo.name || !shippingInfo.address || !shippingInfo.city || !shippingInfo.postal_code) {
       toast.error('Veuillez remplir tous les champs');
+      return;
+    }
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(customerEmail)) {
+      toast.error('Veuillez entrer une adresse email valide');
       return;
     }
 
@@ -46,6 +54,7 @@ const CheckoutPage = () => {
 
       // Create order
       const orderResponse = await ordersApi.create({
+        customer_email: customerEmail,
         shipping_name: shippingInfo.name,
         shipping_address: shippingInfo.address,
         shipping_city: shippingInfo.city,
@@ -55,7 +64,11 @@ const CheckoutPage = () => {
       });
 
       const orderId = orderResponse.data.id;
+      const trackingCode = orderResponse.data.tracking_code;
       const originUrl = window.location.origin;
+
+      // Store tracking code for success page
+      localStorage.setItem('last_tracking_code', trackingCode);
 
       // Create payment session based on method
       if (paymentMethod === 'stripe') {
@@ -98,6 +111,21 @@ const CheckoutPage = () => {
                   Informations de livraison
                 </h2>
                 <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="email">Adresse email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      placeholder="votre@email.com"
+                      required
+                      data-testid="customer-email"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Pour recevoir les mises à jour de votre commande
+                    </p>
+                  </div>
                   <div>
                     <Label htmlFor="name">Nom complet</Label>
                     <Input

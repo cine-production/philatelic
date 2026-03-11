@@ -1,20 +1,29 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { CheckCircle, Loader2, Package } from 'lucide-react';
+import { CheckCircle, Loader2, Package, Copy } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { paymentsApi } from '../lib/api';
 import { useCart } from '../context/CartContext';
+import { toast } from 'sonner';
 
 const CheckoutSuccessPage = () => {
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState('checking');
   const [orderDetails, setOrderDetails] = useState(null);
+  const [trackingCode, setTrackingCode] = useState(null);
   const { refreshCart } = useCart();
 
   const sessionId = searchParams.get('session_id');
   const paypalOrderId = searchParams.get('paypal_order_id');
 
   useEffect(() => {
+      // Get tracking code from localStorage
+    const savedTrackingCode = localStorage.getItem('last_tracking_code');
+    if (savedTrackingCode) {
+      setTrackingCode(savedTrackingCode);
+      localStorage.removeItem('last_tracking_code');
+    }
+
     const checkPaymentStatus = async () => {
       try {
         if (sessionId) {
@@ -64,6 +73,13 @@ const CheckoutSuccessPage = () => {
     checkPaymentStatus();
   }, [sessionId, paypalOrderId, refreshCart]);
 
+  const copyTrackingCode = () => {
+    if (trackingCode) {
+      navigator.clipboard.writeText(trackingCode);
+      toast.success('Code copié !');
+    }
+  };
+
   return (
     <div className="animate-fade-in" data-testid="checkout-success-page">
       <div className="max-w-2xl mx-auto px-4 md:px-8 lg:px-12 py-16 text-center">
@@ -91,6 +107,25 @@ const CheckoutSuccessPage = () => {
               Merci pour votre achat. Vous recevrez un email de confirmation avec les détails de votre commande.
             </p>
             
+            
+            {/* Tracking Code */}
+            {trackingCode && (
+              <div className="bg-primary/5 border-2 border-primary/20 rounded-lg p-6 mb-8">
+                <p className="text-sm text-muted-foreground mb-2">Votre code de suivi</p>
+                <div className="flex items-center justify-center gap-3">
+                  <span className="font-mono text-3xl font-bold text-primary" data-testid="tracking-code">
+                    {trackingCode}
+                  </span>
+                  <Button variant="ghost" size="sm" onClick={copyTrackingCode}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Conservez ce code pour suivre votre commande
+                </p>
+              </div>
+            )}
+
             <div className="bg-card rounded-lg border border-border p-6 mb-8 text-left">
               <div className="flex items-center gap-3 mb-4">
                 <Package className="h-5 w-5 text-primary" />
@@ -104,14 +139,17 @@ const CheckoutSuccessPage = () => {
             </div>
 
             <div className="flex flex-wrap justify-center gap-4">
+              {trackingCode && (
+                <Link to={`/suivi/${trackingCode}`}>
+                  <Button className="btn-burgundy gap-2">
+                    <Package className="h-4 w-4" />
+                    Suivre ma commande
+                  </Button>
+                </Link>
+              )}
               <Link to="/">
-                <Button className="btn-burgundy">
+                 <Button variant="outline">
                   Retour à l'accueil
-                </Button>
-              </Link>
-              <Link to="/timbres">
-                <Button variant="outline">
-                  Continuer mes achats
                 </Button>
               </Link>
             </div>
@@ -127,6 +165,11 @@ const CheckoutSuccessPage = () => {
             <p className="text-muted-foreground mb-8">
               Votre paiement est en cours de traitement. Vous recevrez une confirmation par email une fois le paiement validé.
             </p>
+            {trackingCode && (
+              <p className="text-sm text-muted-foreground mb-4">
+                Code de suivi : <span className="font-mono font-bold">{trackingCode}</span>
+              </p>
+            )}
             <Link to="/">
               <Button className="btn-burgundy">
                 Retour à l'accueil

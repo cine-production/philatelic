@@ -12,11 +12,13 @@ import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import CheckoutSuccessPage from "./pages/CheckoutSuccessPage";
 import CheckoutCancelPage from "./pages/CheckoutCancelPage";
+import OrderTrackingPage from "./pages/OrderTrackingPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminAddProductPage from "./pages/AdminAddProductPage";
 import AdminProductsPage from "./pages/AdminProductsPage";
 import AdminOrdersPage from "./pages/AdminOrdersPage";
+import AdminOrderPrintPage from "./pages/AdminOrderPrintPage";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -41,11 +43,14 @@ function App() {
                 <Route path="/checkout" element={<CheckoutPage />} />
                 <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
                 <Route path="/checkout/cancel" element={<CheckoutCancelPage />} />
+                <Route path="/suivi" element={<OrderTrackingPage />} />
+                <Route path="/suivi/:trackingCode" element={<OrderTrackingPage />} />
                 <Route path="/admin/login" element={<AdminLoginPage />} />
                 <Route path="/admin" element={<AdminDashboardPage />} />
                 <Route path="/admin/ajouter" element={<AdminAddProductPage />} />
                 <Route path="/admin/produits" element={<AdminProductsPage />} />
                 <Route path="/admin/commandes" element={<AdminOrdersPage />} />
+                <Route path="/admin/commandes/:orderId/imprimer" element={<AdminOrderPrintPage />} />
               </Routes>
             </main>
             <Footer />

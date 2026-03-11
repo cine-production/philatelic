@@ -90,7 +90,9 @@ const AdminAddProductPage = () => {
     history: '',
     print_quantity: '',
     dimensions: '',
-    image_url: ''
+    image_url: '',
+    stock_quantity: 1,
+    classification_id: ''
   });
 
   const [aiConfidence, setAiConfidence] = useState(0);
@@ -250,7 +252,9 @@ const AdminAddProductPage = () => {
         history: analysis.history || '',
         print_quantity: '',
         dimensions: '',
-        image_url: imageDataUrl
+        image_url: imageDataUrl,
+        tock_quantity: 1,
+        classification_id: analysis.classification_id || ''
       });
       
       setAiConfidence(analysis.confidence || 0);
@@ -312,7 +316,9 @@ const AdminAddProductPage = () => {
       history: '',
       print_quantity: '',
       dimensions: '',
-      image_url: ''
+      image_url: '',
+      tock_quantity: 1,
+      classification_id: ''
     });
     setAiConfidence(0);
     setStep('capture');
@@ -334,7 +340,8 @@ const AdminAddProductPage = () => {
         year: formData.year ? parseInt(formData.year) : null,
         price: parseFloat(formData.price),
         estimated_value: formData.estimated_value ? parseFloat(formData.estimated_value) : parseFloat(formData.price),
-        print_quantity: formData.print_quantity ? parseInt(formData.print_quantity) : null
+        print_quantity: formData.print_quantity ? parseInt(formData.print_quantity) : null,
+        tock_quantity: formData.stock_quantity ? parseInt(formData.stock_quantity) : 1
       };
       
       await productsApi.create(productData);
@@ -851,6 +858,39 @@ const AdminAddProductPage = () => {
                           disabled={step === 'confirm'}
                           className={`font-mono ${step === 'confirm' ? 'bg-muted' : ''}`}
                         />
+                      </div>
+                    </div>
+
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Quantité en stock</Label>
+                        <Input
+                          name="stock_quantity"
+                          type="number"
+                          min="0"
+                          value={formData.stock_quantity}
+                          onChange={handleInputChange}
+                          disabled={step === 'confirm'}
+                          className={step === 'confirm' ? 'bg-muted' : ''}
+                          data-testid="product-stock"
+                        />
+                      </div>
+
+                      <div>
+                        <Label>ID Classification</Label>
+                        <Input
+                          name="classification_id"
+                          value={formData.classification_id}
+                          onChange={handleInputChange}
+                          disabled={step === 'confirm'}
+                          className={`font-mono ${step === 'confirm' ? 'bg-muted' : ''}`}
+                          placeholder="Ex: 1960-FR-COM-001"
+                          data-testid="product-classification-id"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Format: ANNÉE-PAYS-CATÉGORIE-NUMÉRO
+                        </p>
                       </div>
                     </div>
 

@@ -1,81 +1,102 @@
-# Philatelic Curator - PRD (Product Requirements Document)
+"# Philatelic Curator - Product Requirements Document
 
-## Original Problem Statement
-Site de vente de timbres et enveloppes avec :
-- Page administrateur pour ajouter des produits via photo + analyse IA (Ollama + LLaVA)
-- IA pour : détecter l'état, vérifier oblitération, extraire infos (date, histoire, provenance, tirage), calculer valeur/prix
-- Confirmation des infos puis enregistrement en BDD
-- Paiement Stripe + PayPal
-- 2 sections : Timbres et Enveloppes
-- Filtres : date, rareté, prix, catégorie, pays, oblitéré
+## Problème Original
+Site e-commerce pour timbres et enveloppes avec analyse IA.
 
-## User Choices
-- **IA**: Ollama + LLaVA (hébergé localement sur PC Windows 24/7)
-- **Auth**: Email/mot de passe (JWT) - admin uniquement
-- **Paiement**: Stripe + PayPal
-- **Design**: Moderne, thème clair "Museum/Gallery"
-- **Hébergement cible**: PC Windows local
+## Fonctionnalités Implémentées (Mars 2026)
 
-## User Personas
-1. **Administrateur/Vendeur**: Scanne des produits via caméra/upload, l'IA analyse et propose un prix, confirme avant mise en vente
-2. **Collectionneurs/Acheteurs**: Parcourent le catalogue, filtrent par critères, achètent via Stripe/PayPal
+### Core Features ✅
+- [x] Application full-stack (FastAPI + React + MongoDB)
+- [x] Authentification admin avec JWT
+- [x] Gestion des produits (CRUD)
+- [x] Analyse IA (Gemini, Ollama, Manuel)
+- [x] Panier et checkout
+- [x] Intégration Stripe/PayPal
 
-## What's Been Implemented (Jan 2026)
+### Session Actuelle ✅
 
-### Backend (FastAPI + MongoDB)
-- Auth JWT: register/login/me
-- Products CRUD avec filtres avancés
-- Cart avec session ID
-- Orders avec shipping info
-- Payments Stripe (fonctionnel) + PayPal (nécessite credentials)
-- AI Analysis via Ollama LLaVA
-- Admin stats et gestion commandes
+#### 1. Système de stock
+- [x] Champ `stock_quantity` (défaut: 1)
+- [x] Affichage \"En stock\" / \"Rupture de stock\"
+- [x] Modification stock lors édition produit
+- [x] Blocage ajout panier si stock épuisé
+- [x] Décrémentation automatique à la commande
 
-### Frontend (React + Tailwind + Shadcn)
-**Pages publiques:**
-- Home: Hero section, catégories Timbres/Enveloppes
-- Stamps/Envelopes: Catalogues avec filtres (oblitération, état, rareté, prix, pays)
-- ProductDetail: Fiche produit complète
-- Cart/Checkout: Panier et paiement
+#### 2. Système de commande complet
+- [x] Statuts: En attente → Payée → Préparation → Expédiée → Livrée → Reçue
+- [x] Code de suivi unique (ex: ABC12345)
+- [x] Email client obligatoire au checkout
+- [x] Numéro de suivi postal et transporteur
 
-**Pages admin (protégées):**
-- Login: Connexion/Inscription (1er user = admin)
-- Dashboard: Stats (produits, commandes, CA)
-- **Scanner produit** (AMÉLIORÉ): 
-  - Étape 1: Prendre photo (caméra) ou importer image
-  - Étape 2: Analyse IA automatique → remplit tous les champs
-  - Étape 3: Confirmation avec possibilité de modifier avant enregistrement
-- Products: Liste avec modification/suppression inline
-- Orders: Suivi et mise à jour statuts
+#### 3. Page de suivi client `/suivi`
+- [x] Recherche par code de suivi
+- [x] Progression visuelle des étapes
+- [x] Bouton \"J'ai reçu mon colis\"
+- [x] Bouton télécharger PDF
 
-### Design System
-- Theme: "Philatelic Curator" - Warm paper background
-- Fonts: Playfair Display + Inter + JetBrains Mono
-- Colors: Burgundy primary (#7a2048), Royal Blue secondary
+#### 4. ID de classification
+- [x] Format: `ANNÉE-PAYS-CATÉGORIE-NUMÉRO`
+- [x] Ex: `1960-FR-COM-001`
+- [x] Généré automatiquement par l'IA
+- [x] Modifiable lors édition produit
 
-## Flux Admin Scanner (Mis à jour)
-1. Cliquer "Scanner un produit"
-2. Prendre photo via caméra OU importer image
-3. L'IA analyse automatiquement:
-   - Détecte état (Neuf/Excellent/Bon/Correct/Usé)
-   - Vérifie oblitération
-   - Identifie pays, année, catégorie
-   - Estime rareté
-   - Calcule valeur et propose prix de vente
-4. Affichage des résultats pour vérification
-5. Possibilité de modifier les infos
-6. Confirmation → Enregistrement → Mise en vente
+#### 5. Notifications email (Resend)
+- [x] Email confirmation de commande
+- [x] Email expédition avec numéro de suivi
+- [x] Email livraison avec bouton confirmation
 
-## Next Tasks (P1)
-1. **Pour l'utilisateur**:
-   - Installer Ollama: `winget install Ollama.Ollama`
-   - Installer LLaVA: `ollama pull llava`
-   - Lancer Ollama: `ollama serve`
-2. Configurer PayPal credentials dans .env
-3. Configurer reverse proxy pour accès externe (ngrok/Cloudflare Tunnel)
+#### 6. Téléchargement PDF
+- [x] Fiche préparation admin (avec ID classification)
+- [x] Récapitulatif commande client
 
-## P2 Features
-- Email notifications (commandes)
-- Recherche textuelle produits
-- Historique des prix
-- Export CSV des commandes
+#### 7. Corrections
+- [x] Bug filtres pays/catégorie corrigé
+- [x] Modèle AIAnalysisResponse avec valeurs par défaut
+
+## Configuration Email (Resend)
+
+Pour activer les emails :
+1. Créer un compte sur https://resend.com
+2. Créer une clé API
+3. Ajouter dans `backend/.env`:
+```
+RESEND_API_KEY=re_votre_cle
+SENDER_EMAIL=votre@domaine.com
+SITE_NAME=Philatelic Curator
+SITE_URL=https://votre-domaine.com
+```
+
+## Quotas Gratuits
+
+| Service | Quota gratuit |
+|---------|---------------|
+| Gemini 1.5 Flash | 1,500 req/jour |
+| Resend | 100 emails/jour |
+| MongoDB | Illimité (local) |
+
+## Codes de Classification
+
+| Code | Description |
+|------|-------------|
+| DEF | Définitif (usage courant) |
+| COM | Commémoratif |
+| AIR | Poste aérienne |
+| TAX | Taxe |
+| ENV | Enveloppe |
+| BLO | Bloc-feuillet |
+| AUT | Autre |
+
+## Prochaines Tâches
+
+### P1 (Prioritaire)
+- [ ] Intégrer Groq comme alternative IA
+- [ ] Bouton \"Vérifier sur Colnect\"
+
+### P2
+- [ ] Configuration clés production Stripe/PayPal
+- [ ] Amélioration mobile
+
+### P3
+- [ ] Export CSV des commandes
+- [ ] Historique des prix
+"

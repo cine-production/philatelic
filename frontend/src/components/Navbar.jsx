@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ShoppingCart, Menu, X, User, LogOut } from 'lucide-react';
+import logo from '../assets/PhilatelicCuratorLogoLarge.png';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import {
@@ -38,12 +39,7 @@ const Navbar = () => {
             className="flex items-center gap-3"
             data-testid="logo-link"
           >
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-serif text-xl font-bold">PC</span>
-            </div>
-            <span className="hidden sm:block font-serif text-xl font-semibold text-foreground">
-              Philatelic Curator
-            </span>
+            <img style={{ maxHeight: '50px' }} src={logo} alt="Philatelic Curator" />
           </Link>
 
           {/* Desktop Navigation */}

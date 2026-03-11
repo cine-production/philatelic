@@ -111,10 +111,20 @@ const AdminOrdersPage = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await ordersApi.getAll({ limit: 100 });
-        const allOrders = response.data;
-        setOrders(allOrders.filter(o => !o.is_archived));
-        setArchivedOrders(allOrders.filter(o => o.is_archived));
+        const [activeRes, archivedRes] = await Promise.all([
+          ordersApi.getAll({ limit: 100, archived: false }),
+          ordersApi.getAll({ limit: 100, archived: true })
+        ]);
+        const activeOrders = activeRes.data;
+        const archived = archivedRes.data;
+        // Fallback: si l'API ne supporte pas le filtre archived, on filtre côté client
+        if (archived.length === 0 && activeOrders.some(o => o.is_archived)) {
+          setOrders(activeOrders.filter(o => !o.is_archived));
+          setArchivedOrders(activeOrders.filter(o => o.is_archived));
+        } else {
+          setOrders(activeOrders.filter(o => !o.is_archived));
+          setArchivedOrders(archived);
+        }
       } catch (error) {
         console.error('Failed to fetch orders:', error);
         toast.error('Erreur lors du chargement des commandes');

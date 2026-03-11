@@ -40,10 +40,27 @@ export const ordersApi = {
   create: (data) => api.post('/orders', data),
   getById: (id) => api.get(`/orders/${id}`),
   track: (trackingCode, email) => api.get(`/orders/track/${trackingCode}`, { params: { email } }),
-  confirmReception: (trackingCode, email) => api.post(`/orders/track/${trackingCode}/confirm-reception`, { customer_email: email }),
+  confirmReception: (trackingCode, email) => {
+    // Utilise fetch natif pour éviter les problèmes CORS avec axios
+    return fetch(`${API_URL}/api/orders/track/${trackingCode}/confirm-reception`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ customer_email: email }),
+    }).then(async (res) => {
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw { response: { data, status: res.status } };
+      }
+      return { data: await res.json() };
+    });
+  },
   cancelPending: (id) => api.delete(`/orders/${id}/cancel`),
   downloadPdf: (trackingCode) => `${API_URL}/api/orders/track/${trackingCode}/pdf`,
   getAll: (params = {}) => api.get('/admin/orders', { params }),
+  getAllArchived: (params = {}) => api.get('/admin/orders', { params: { ...params, archived: true } }),
   updateStatus: (id, status) => api.put(`/admin/orders/${id}/status`, null, { params: { status } }),
   update: (id, data) => api.put(`/admin/orders/${id}`, data),
   delete: (id) => api.delete(`/admin/orders/${id}`),

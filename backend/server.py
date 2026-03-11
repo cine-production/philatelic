@@ -1151,6 +1151,7 @@ async def confirm_reception(tracking_code: str, request: ConfirmReceptionRequest
     now = datetime.now(timezone.utc)
     # Mark as received and auto-archive
     await db.orders.update_one(
+        {"tracking_code": tracking_code},
         {
         "$set": {
             "status": OrderStatus.RECEIVED.value,
@@ -1579,9 +1580,9 @@ async def capture_paypal_order(paypal_order_id: str):
                             update_data = {"stock_quantity": new_stock}
                             if new_stock == 0:
                                 update_data["is_sold"] = True
-                                await db.products.update_one(
-                                    {"id": item["product_id"]}, {"$set": update_data}
-                                )
+                            await db.products.update_one(
+                                {"id": item["product_id"]}, {"$set": update_data}
+                            )
                     await db.carts.delete_one({"session_id": order.get("session_id")})
 
                     # Send confirmation email
@@ -1987,11 +1988,19 @@ async def check_ai_status():
 # ============== ADMIN ROUTES ==============
 @api_router.get("/admin/orders", response_model=List[OrderResponse])
 async def get_all_orders(
-    admin: Dict = Depends(require_admin), status: Optional[str] = None, limit: int = 50
+    admin: Dict = Depends(require_admin),
+    status: Optional[str] = None,
+    limit: int = 50,
+    archived: Optional[bool] = None,
 ):
     query = {}
     if status:
         query["status"] = status
+    if archived is True:
+        query["is_archived"] = True
+    elif archived is False:
+        query["is_archived"] = {"$ne": True}
+    # Si archived n'est pas fourni, on retourne tout (comportement original)
 
     orders = (
         await db.orders.find(query, {"_id": 0})
@@ -2502,7 +2511,8 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
-# Include router and middleware
+
+# Include router AFTER middleware
 app.include_router(api_router)
 
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Mail, Filter } from 'lucide-react';
+import { Mail, Filter, Search } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '../components/ui/sheet';
 import ProductCard from '../components/ProductCard';
 import FilterSidebar from '../components/FilterSidebar';
@@ -10,6 +11,7 @@ const EnvelopesPage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ countries: [], categories: [] });
+  const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     condition: null,
     rarity: null,
@@ -52,11 +54,27 @@ const EnvelopesPage = () => {
     fetchProducts();
   }, [filters]);
 
+  
+  // Filter products by search query
+  const filteredProducts = products.filter(p => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      p.name?.toLowerCase().includes(query) ||
+      p.country?.toLowerCase().includes(query) ||
+      p.category?.toLowerCase().includes(query) ||
+      p.classification_id?.toLowerCase().includes(query) ||
+      p.year?.toString().includes(query)
+    );
+  });
+
   return (
     <div className="animate-fade-in" data-testid="envelopes-page">
       {/* Header */}
       <div className="bg-muted/30 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
           <div className="flex items-center gap-3 mb-2">
             <Mail className="h-8 w-8 text-primary" />
             <h1 className="font-serif text-3xl md:text-4xl font-bold text-foreground">
@@ -66,6 +84,19 @@ const EnvelopesPage = () => {
           <p className="text-muted-foreground">
             Explorez notre sélection d'enveloppes historiques et commémoratives
           </p>
+          </div>
+            
+            <div className="relative w-full md:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher une enveloppe..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+                data-testid="envelopes-search"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -110,7 +141,7 @@ const EnvelopesPage = () => {
             {/* Results Count */}
             <div className="mb-6">
               <p className="text-muted-foreground">
-                {loading ? 'Chargement...' : `${products.length} enveloppe${products.length !== 1 ? 's' : ''} trouvée${products.length !== 1 ? 's' : ''}`}
+                 {loading ? 'Chargement...' : `${filteredProducts.length} enveloppe${filteredProducts.length !== 1 ? 's' : ''} trouvée${filteredProducts.length !== 1 ? 's' : ''}`}
               </p>
             </div>
 
@@ -128,9 +159,9 @@ const EnvelopesPage = () => {
                   </div>
                 ))}
               </div>
-            ) : products.length > 0 ? (
+            ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6" data-testid="products-grid">
-                {products.map((product) => (
+                {filteredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>
@@ -141,7 +172,7 @@ const EnvelopesPage = () => {
                   Aucune enveloppe trouvée
                 </h3>
                 <p className="text-muted-foreground">
-                  Essayez de modifier vos filtres pour voir plus de résultats
+                  {searchQuery ? 'Aucun résultat pour votre recherche' : 'Essayez de modifier vos filtres pour voir plus de résultats'}
                 </p>
               </div>
             )}

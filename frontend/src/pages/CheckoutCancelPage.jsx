@@ -1,8 +1,27 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { XCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { ordersApi } from '../lib/api';
 
 const CheckoutCancelPage = () => {
+  const [searchParams] = useSearchParams();
+  const orderId = searchParams.get('order_id');
+
+  useEffect(() => {
+    // Cancel the pending order if we have an order_id
+    const cancelOrder = async () => {
+      if (orderId) {
+        try {
+          await ordersApi.cancelPending(orderId);
+        } catch (error) {
+          console.log('Order cancellation:', error.message);
+        }
+      }
+    };
+    cancelOrder();
+  }, [orderId]);
+
   return (
     <div className="animate-fade-in" data-testid="checkout-cancel-page">
       <div className="max-w-2xl mx-auto px-4 md:px-8 lg:px-12 py-16 text-center">

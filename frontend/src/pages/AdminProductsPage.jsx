@@ -168,7 +168,7 @@ const AdminProductsPage = () => {
         estimated_value: editingProduct.estimated_value ? parseFloat(editingProduct.estimated_value) : null,
         history: editingProduct.history,
         is_sold: editingProduct.is_sold,
-        tock_quantity: editingProduct.stock_quantity ? parseInt(editingProduct.stock_quantity) : 1,
+        stock_quantity: editingProduct.stock_quantity ? parseInt(editingProduct.stock_quantity) : 1,
         classification_id: editingProduct.classification_id
       };
       

@@ -42,28 +42,36 @@ const OrderTrackingPage = () => {
   const { trackingCode: urlTrackingCode } = useParams();
   const [searchParams] = useSearchParams();
   const [trackingCode, setTrackingCode] = useState(urlTrackingCode || searchParams.get('code') || '');
+  const [email, setEmail] = useState('');
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
 
   useEffect(() => {
     if (urlTrackingCode) {
-      fetchOrder(urlTrackingCode);
+      setShowEmailForm(true);
     }
   }, [urlTrackingCode]);
 
-  const fetchOrder = async (code) => {
-    if (!code) return;
+    const fetchOrder = async (code, customerEmail) => {
+        if (!code || !customerEmail) return;
     
     try {
       setLoading(true);
-      const response = await ordersApi.track(code.toUpperCase());
+      const response = await ordersApi.track(code.toUpperCase(), customerEmail);
       setOrder(response.data);
     } catch (error) {
       console.error('Track error:', error);
+      if (error.response?.status === 403) {
+        toast.error('Email incorrect', {
+          description: 'L\'email ne correspond pas à cette commande'
+        });
+      } else {
       toast.error('Commande non trouvée', {
         description: 'Vérifiez le code de suivi'
       });
+      }
       setOrder(null);
     } finally {
       setLoading(false);
@@ -73,18 +81,22 @@ const OrderTrackingPage = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     if (trackingCode) {
-      fetchOrder(trackingCode);
+      if (!email) {
+        setShowEmailForm(true);
+      } else {
+        fetchOrder(trackingCode, email);
+      }
     }
   };
 
   const handleConfirmReception = async () => {
-    if (!order) return;
+    if (!order || !email) return;
     
     try {
       setConfirming(true);
-      await ordersApi.confirmReception(order.tracking_code);
+      await ordersApi.confirmReception(order.tracking_code, email);
       toast.success('Réception confirmée !');
-      fetchOrder(order.tracking_code);
+      fetchOrder(order.tracking_code, email);
     } catch (error) {
       toast.error('Erreur', {
         description: error.response?.data?.detail || 'Impossible de confirmer la réception'
@@ -122,7 +134,8 @@ const OrderTrackingPage = () => {
         </div>
 
         {/* Search Form */}
-        <form onSubmit={handleSearch} className="flex gap-2 mb-8">
+        <form onSubmit={handleSearch} className="space-y-4 mb-8">
+          <div className="flex gap-2">
           <Input
             value={trackingCode}
             onChange={(e) => setTrackingCode(e.target.value.toUpperCase())}
@@ -130,10 +143,34 @@ const OrderTrackingPage = () => {
             className="flex-1 font-mono text-lg tracking-wider"
             data-testid="tracking-input"
           />
-          <Button type="submit" disabled={loading} className="btn-burgundy gap-2">
-            <Search className="h-4 w-4" />
-            Rechercher
-          </Button>
+          {!showEmailForm && (
+            <Button type="submit" disabled={loading} className="btn-burgundy gap-2">
+               <Search className="h-4 w-4" />
+                Suivre
+            </Button>
+            )}
+          </div>
+          
+          {showEmailForm && (
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email utilisé lors de la commande"
+                className="flex-1"
+                data-testid="email-input"
+              />
+              <Button
+                type="submit"
+                disabled={loading || !email}
+                className="btn-burgundy gap-2"
+                >
+                <Search className="h-4 w-4" />
+                Rechercher
+            </Button>
+          </div>
+        )}
         </form>
 
         {/* Order Details */}

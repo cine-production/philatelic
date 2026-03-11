@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, Loader2 } from 'lucide-react';
+import { CreditCard, Loader2, Truck } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -9,6 +9,9 @@ import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { useCart } from '../context/CartContext';
 import { ordersApi, paymentsApi } from '../lib/api';
 import { toast } from 'sonner';
+
+const SHIPPING_THRESHOLD = 25;
+const SHIPPING_COST = 3.99;
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
@@ -23,6 +26,10 @@ const CheckoutPage = () => {
     postal_code: '',
     country: 'France'
   });
+
+  const subtotal = cart.total;
+  const shippingCost = subtotal >= SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  const total = subtotal + shippingCost;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -245,7 +252,7 @@ const CheckoutPage = () => {
                 ) : (
                   <>
                     <CreditCard className="h-5 w-5" />
-                    Payer {cart.total.toFixed(2)} €
+                     Payer {total.toFixed(2)} €
                   </>
                 )}
               </Button>
@@ -260,7 +267,7 @@ const CheckoutPage = () => {
               </h2>
               
               <div className="space-y-4 mb-4">
-                {cart.items.map(({ product }) => (
+                {cart.items.map(({ product, quantity }) => (
                   <div key={product.id} className="flex gap-3">
                     <div className="w-16 h-16 bg-muted rounded overflow-hidden flex-shrink-0">
                       <img
@@ -271,9 +278,11 @@ const CheckoutPage = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm line-clamp-1">{product.name}</p>
-                      <p className="text-sm text-muted-foreground">{product.country}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {product.country} {quantity > 1 && `× ${quantity}`}
+                      </p>
                       <p className="font-mono text-sm font-semibold text-primary">
-                        {product.price.toFixed(2)} €
+                        {(product.price * quantity).toFixed(2)} €
                       </p>
                     </div>
                   </div>
@@ -285,20 +294,35 @@ const CheckoutPage = () => {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Sous-total</span>
-                  <span>{cart.total.toFixed(2)} €</span>
+                  <span>{subtotal.toFixed(2)} €</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Livraison</span>
-                  <span className="text-muted-foreground">Gratuite</span>
+                   <div className="flex items-center gap-1 text-muted-foreground">
+                    <Truck className="h-4 w-4" />
+                    <span>Livraison</span>
+                  </div>
+                  {shippingCost === 0 ? (
+                    <span className="text-green-600 font-medium">Gratuite</span>
+                  ) : (
+                    <span>{shippingCost.toFixed(2)} €</span>
+                  )}
                 </div>
               </div>
+
+              {subtotal < SHIPPING_THRESHOLD && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-4">
+                  <p className="text-xs text-amber-800">
+                    Plus que <strong>{(SHIPPING_THRESHOLD - subtotal).toFixed(2)} €</strong> pour la livraison gratuite
+                  </p>
+                </div>
+              )}
 
               <Separator className="my-4" />
 
               <div className="flex justify-between">
                 <span className="font-serif font-semibold">Total</span>
                 <span className="font-mono text-xl font-bold text-primary" data-testid="checkout-total">
-                  {cart.total.toFixed(2)} €
+                  {total.toFixed(2)} €
                 </span>
               </div>
             </div>

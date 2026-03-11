@@ -39,14 +39,21 @@ export const productsApi = {
 export const ordersApi = {
   create: (data) => api.post('/orders', data),
   getById: (id) => api.get(`/orders/${id}`),
-  track: (trackingCode) => api.get(`/orders/track/${trackingCode}`),
-  confirmReception: (trackingCode) => api.post(`/orders/track/${trackingCode}/confirm-reception`),
-   downloadPdf: (trackingCode) => `${API_URL}/api/orders/track/${trackingCode}/pdf`,
+  track: (trackingCode, email) => api.get(`/orders/track/${trackingCode}`, { params: { email } }),
+  confirmReception: (trackingCode, email) => api.post(`/orders/track/${trackingCode}/confirm-reception`, { customer_email: email }),
+  cancelPending: (id) => api.delete(`/orders/${id}/cancel`),
+  downloadPdf: (trackingCode) => `${API_URL}/api/orders/track/${trackingCode}/pdf`,
   getAll: (params = {}) => api.get('/admin/orders', { params }),
   updateStatus: (id, status) => api.put(`/admin/orders/${id}/status`, null, { params: { status } }),
   update: (id, data) => api.put(`/admin/orders/${id}`, data),
+  delete: (id) => api.delete(`/admin/orders/${id}`),
+  archive: (id) => api.post(`/admin/orders/${id}/archive`),
+  unarchive: (id) => api.post(`/admin/orders/${id}/unarchive`),
   getForPrint: (id) => api.get(`/admin/orders/${id}/print`),
-  downloadAdminPdf: (id) => `${API_URL}/api/admin/orders/${id}/pdf`
+  downloadAdminPdf: async (id) => {
+    const response = await api.get(`/admin/orders/${id}/pdf`, { responseType: 'blob' });
+    return response;
+  }
 };
 
 // Payments API

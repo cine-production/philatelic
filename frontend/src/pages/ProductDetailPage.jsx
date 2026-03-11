@@ -36,6 +36,7 @@ const ProductDetailPage = () => {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [quantity, setQuantity] = useState(1);
   const { addToCart, loading: cartLoading } = useCart();
 
   useEffect(() => {
@@ -56,10 +57,10 @@ const ProductDetailPage = () => {
   }, [id]);
 
   const handleAddToCart = async () => {
-    const result = await addToCart(product.id);
+    const result = await addToCart(product.id, quantity);
     if (result.success) {
       toast.success('Ajouté au panier', {
-        description: product.name
+        escription: `${quantity}x ${product.name}`
       });
     } else {
       toast.error('Erreur', {
@@ -67,6 +68,8 @@ const ProductDetailPage = () => {
       });
     }
   };
+  
+  const stockAvailable = product?.stock_quantity || 1;
 
   if (loading) {
     return (
@@ -194,6 +197,32 @@ const ProductDetailPage = () => {
 
             {/* Add to Cart */}
             {!product.is_sold && (product.stock_quantity === undefined || product.stock_quantity > 0) ? (
+              <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                {/* Quantity Selector */}
+                {stockAvailable > 1 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Quantité:</span>
+                    <div className="flex items-center border rounded-md">
+                      <button
+                        type="button"
+                        onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                        className="px-3 py-2 hover:bg-muted transition-colors"
+                        disabled={quantity <= 1}
+                      >
+                        -
+                      </button>
+                      <span className="px-4 py-2 font-medium min-w-[3rem] text-center">{quantity}</span>
+                      <button
+                        type="button"
+                        onClick={() => setQuantity(q => Math.min(stockAvailable, q + 1))}
+                        className="px-3 py-2 hover:bg-muted transition-colors"
+                        disabled={quantity >= stockAvailable}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )}
               <Button
                 size="lg"
                 className="btn-burgundy w-full md:w-auto gap-2"
@@ -204,6 +233,7 @@ const ProductDetailPage = () => {
                 <ShoppingCart className="h-5 w-5" />
                 Ajouter au panier
               </Button>
+              </div>
               ) : product.stock_quantity === 0 ? (
               <Button size="lg" disabled className="w-full md:w-auto">
                 Rupture de stock

@@ -56,12 +56,12 @@ export const CartProvider = ({ children }) => {
     fetchCart();
   }, [fetchCart]);
 
-  const addToCart = async (productId) => {
+  const addToCart = async (productId, quantity = 1) => {
     try {
       setLoading(true);
       const response = await axios.post(
         `${API_URL}/api/cart/add`,
-        { product_id: productId },
+        { product_id: productId, quantity },
         { headers: { 'X-Session-ID': sessionId } }
       );
       
@@ -102,6 +102,28 @@ export const CartProvider = ({ children }) => {
     }
   };
 
+  
+  const updateQuantity = async (productId, quantity) => {
+    try {
+      setLoading(true);
+      await axios.put(
+        `${API_URL}/api/cart/${productId}`,
+        { quantity },
+        { headers: { 'X-Session-ID': sessionId } }
+      );
+      await fetchCart();
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to update quantity:', error);
+      return { 
+        success: false, 
+        error: error.response?.data?.detail || 'Erreur lors de la mise à jour' 
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const clearCart = async () => {
     try {
       setLoading(true);
@@ -122,7 +144,7 @@ export const CartProvider = ({ children }) => {
     cart,
     loading,
     sessionId,
-    itemCount: cart.items.length,
+    itemCount: cart.items.reduce((sum, item) => sum + (item.quantity || 1), 0),
     addToCart,
     removeFromCart,
     clearCart,

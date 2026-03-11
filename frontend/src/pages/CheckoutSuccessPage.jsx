@@ -14,7 +14,7 @@ const CheckoutSuccessPage = () => {
   const { refreshCart } = useCart();
 
   const sessionId = searchParams.get('session_id');
-  const paypalOrderId = searchParams.get('paypal_order_id');
+  const paypalOrderId = searchParams.get('paypal_order_id') || searchParams.get('token');
 
   useEffect(() => {
       // Get tracking code from localStorage

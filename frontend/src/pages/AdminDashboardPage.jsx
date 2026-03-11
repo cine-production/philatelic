@@ -8,7 +8,9 @@ import {
   TrendingUp,
   Stamp,
   Mail,
-  Euro
+  Euro,
+  Archive,
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -128,6 +130,70 @@ const AdminDashboardPage = () => {
               <p className="text-xs text-muted-foreground">
                 {loading ? '' : `${stats?.orders?.paid || 0} commande(s) payée(s)`}
               </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        
+        {/* Additional Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Produits vendus
+              </CardTitle>
+              <TrendingUp className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold font-mono text-green-600">
+                {loading ? '...' : stats?.products?.sold || 0}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Commandes actives
+              </CardTitle>
+              <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold font-mono">
+                {loading ? '...' : stats?.orders?.total || 0}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {loading ? '' : `${stats?.orders?.preparing || 0} en préparation`}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Archivées
+              </CardTitle>
+              <Archive className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold font-mono">
+                {loading ? '...' : stats?.orders?.archived || 0}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Stock faible
+              </CardTitle>
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold font-mono text-amber-600">
+                {loading ? '...' : stats?.products?.low_stock || 0}
+              </div>
+              <p className="text-xs text-muted-foreground">produits ≤ 2</p>
             </CardContent>
           </Card>
         </div>

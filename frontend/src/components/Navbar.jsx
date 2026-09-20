@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ShoppingCart, Menu, X, User, LogOut } from 'lucide-react';
+import logo from '../assets/MemeWearLarge.png';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import {
@@ -40,8 +41,9 @@ const Navbar = () => {
             className="flex items-center gap-2"
             data-testid="logo-link"
           >
-            <span className="text-2xl">👕</span>
-            <span className="font-serif text-xl font-bold text-foreground">MemeWear</span>
+            <img style={{ maxHeight: '50px' }} src={logo} alt="Philatelic Curator" />
+            {/* <span className="text-2xl">👕</span> */}
+            {/* <span className="font-serif text-xl font-bold text-foreground">MemeWear</span> */}
           </Link>
 
           {/* Desktop Navigation */}

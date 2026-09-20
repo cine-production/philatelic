@@ -55,7 +55,7 @@ const HomePage = () => {
                 <div className="absolute inset-4 bg-card rounded-2xl shadow-float transform -rotate-3 border border-border" />
                 <div className="relative bg-card rounded-2xl shadow-float p-6 border border-border">
                   <img
-                    src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=600&fit=crop"
+                    src="http://cine-production.github.io/ServiceTiers/BASEDONNEE/IMGPhilatelic/Pr%C3%A9sentation.png"
                     alt="Collection de t-shirts"
                     className="w-full h-full object-cover rounded-lg"
                   />

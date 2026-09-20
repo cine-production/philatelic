@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Mail, MapPin } from 'lucide-react';
 import { CUSTOM_TSHIRTS_ENABLED } from '../config/features';
+import logo from '../assets/MemeWearLarge.png';
 
 const Footer = () => {
   return (
@@ -10,10 +11,7 @@ const Footer = () => {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-serif text-xl font-bold">👕</span>
-              </div>
-              <span className="font-serif text-xl font-semibold">MemeWear</span>
+              <img style={{ maxHeight: '50px' }} src={logo} alt="Philatelic Curator" />
             </div>
             <p className="text-secondary-foreground/70 text-sm leading-relaxed">
               Des t-shirts drôles inspirés des memes et des influenceurs, et des designs modernes épurés.
@@ -67,7 +65,7 @@ const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-center gap-2 text-secondary-foreground/70 text-sm">
                 <Mail className="h-4 w-4" />
-                contact@memewear.fr
+                contact@servicetiers.fr
               </li>
               <li className="flex items-center gap-2 text-secondary-foreground/70 text-sm">
                 <MapPin className="h-4 w-4" />

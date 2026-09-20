@@ -56,12 +56,31 @@ export const CartProvider = ({ children }) => {
     fetchCart();
   }, [fetchCart]);
 
-  const addToCart = async (productId, quantity = 1) => {
+  const addToCart = async (productId, quantity = 1, options = {}) => {
+    const {
+      size = null,
+      color = null,
+      customNotes = null,
+      customImageBase64 = null,
+      customFileBase64 = null,
+      customFileType = null,
+      customPosition = null,
+    } = options;
     try {
       setLoading(true);
       const response = await axios.post(
         `${API_URL}/api/cart/add`,
-        { product_id: productId, quantity },
+        {
+          product_id: productId,
+          quantity,
+          size,
+          color,
+          custom_notes: customNotes,
+          custom_image_base64: customImageBase64,
+          custom_file_base64: customFileBase64,
+          custom_file_type: customFileType,
+          custom_position: customPosition,
+        },
         { headers: { 'X-Session-ID': sessionId } }
       );
       

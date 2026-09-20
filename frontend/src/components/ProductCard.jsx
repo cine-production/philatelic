@@ -4,39 +4,55 @@ import { Button } from './ui/button';
 import { ShoppingCart, Eye } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { toast } from 'sonner';
-
-const conditionLabels = {
-  mint: 'Neuf',
-  excellent: 'Excellent',
-  good: 'Bon',
-  fair: 'Correct',
-  poor: 'Usé'
-};
+import { CUSTOM_TSHIRTS_ENABLED } from '../config/features';
 
 const rarityLabels = {
-  common: 'Commun',
-  uncommon: 'Peu commun',
-  rare: 'Rare',
-  very_rare: 'Très rare',
-  exceptional: 'Exceptionnel'
+  common: 'Standard',
+  uncommon: 'Petite série',
+  rare: 'Édition limitée',
+  very_rare: 'Édition limitée',
+  exceptional: 'Collector'
 };
 
 const rarityColors = {
   common: 'bg-muted text-muted-foreground',
   uncommon: 'bg-blue-100 text-blue-700',
   rare: 'bg-purple-100 text-purple-700',
-  very_rare: 'bg-amber-100 text-amber-700',
-  exceptional: 'bg-accent text-white'
+  very_rare: 'bg-pink-100 text-pink-700',
+  exceptional: 'bg-gradient-to-r from-amber-400 to-yellow-200 text-amber-900'
+};
+
+// Cadre décoratif appliqué à la carte produit selon l'édition
+const editionCardClass = {
+  common: '',
+  uncommon: 'edition-uncommon',
+  rare: 'edition-rare',
+  very_rare: 'edition-very_rare',
+  exceptional: 'edition-exceptional'
 };
 
 const ProductCard = ({ product }) => {
   const { addToCart, loading } = useCart();
 
+  const variantPrices = (product.color_variants || [])
+    .map((v) => v.price)
+    .filter((p) => p !== null && p !== undefined);
+  const minPrice = variantPrices.length > 0 ? Math.min(product.price, ...variantPrices) : product.price;
+  const hasVariantPricing = variantPrices.some((p) => p !== product.price);
+
   const handleAddToCart = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (product.is_customizable) {
+      // Les t-shirts personnalisables nécessitent un visuel/texte : direction fiche produit
+      window.location.href = `/produit/${product.id}`;
+      return;
+    }
     
-    const result = await addToCart(product.id);
+    const defaultSize = product.sizes?.[0] || 'M';
+    const defaultColor = product.colors?.[0] || null;
+    const result = await addToCart(product.id, 1, { size: defaultSize, color: defaultColor });
     if (result.success) {
       toast.success('Ajouté au panier', {
         description: product.name
@@ -48,20 +64,18 @@ const ProductCard = ({ product }) => {
     }
   };
 
-  const placeholderImage = product.product_type === 'stamp' 
-    ? 'https://images.unsplash.com/photo-1767635360163-0633939b9f4b?w=400&h=400&fit=crop'
-    : 'https://images.unsplash.com/photo-1767869171276-afe238e1df22?w=400&h=400&fit=crop';
+  const placeholderImage = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop';
 
   return (
     <Link 
       to={`/produit/${product.id}`}
-      className="group curator-card overflow-hidden flex flex-col"
+      className={`group curator-card overflow-hidden flex flex-col ${editionCardClass[product.rarity] || ''}`}
       data-testid={`product-card-${product.id}`}
     >
       {/* Image Container */}
       <div className="relative product-image-container bg-muted aspect-square p-4">
         <img
-          src={product.image_url || placeholderImage}
+          src={product.images?.[0] || product.image_url || placeholderImage}
           alt={product.name}
           className="w-full h-full object-contain rounded"
           loading="lazy"
@@ -72,9 +86,14 @@ const ProductCard = ({ product }) => {
           <Badge className={rarityColors[product.rarity]}>
             {rarityLabels[product.rarity]}
           </Badge>
-          {product.is_obliterated && (
+          {product.is_customizable && (
             <Badge variant="secondary" className="bg-secondary text-secondary-foreground">
-              Oblitéré
+              {CUSTOM_TSHIRTS_ENABLED ? 'Personnalisable' : 'Indisponible'}
+            </Badge>
+          )}
+          {product.is_preorder && (
+            <Badge className="bg-primary/10 text-primary border border-primary/20">
+              Précommande
             </Badge>
           )}
         </div>
@@ -96,29 +115,29 @@ const ProductCard = ({ product }) => {
           </h3>
           
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-            <span>{product.country}</span>
-            {product.year && (
-              <>
-                <span>•</span>
-                <span>{product.year}</span>
-              </>
-            )}
+            <span>{product.category}</span>
           </div>
-          
-          <Badge variant="outline" className="text-xs">
-            {conditionLabels[product.condition]}
-          </Badge>
+
+          {product.sizes?.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {product.sizes.map((s) => (
+                <Badge key={s} variant="outline" className="text-xs">
+                  {s}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Price and Actions */}
         <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
           <div>
             <p className="font-mono text-lg font-semibold text-primary">
-              {product.price.toFixed(2)} €
+              {hasVariantPricing && 'Dès '}{minPrice.toFixed(2)} €
             </p>
-            {product.estimated_value > product.price && (
+            {product.estimated_value > minPrice && (
               <p className="text-xs text-muted-foreground line-through">
-                Valeur: {product.estimated_value.toFixed(2)} €
+                Prix normal: {product.estimated_value.toFixed(2)} €
               </p>
             )}
           </div>

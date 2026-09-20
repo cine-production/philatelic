@@ -6,11 +6,13 @@ import {
   ShoppingBag, 
   Plus, 
   TrendingUp,
-  Stamp,
-  Mail,
+  Laugh,
+  Sparkles,
+  Palette,
   Euro,
   Archive,
-  AlertTriangle
+  AlertTriangle,
+  Tag
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -91,13 +93,13 @@ const AdminDashboardPage = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Timbres
+                Memes
               </CardTitle>
-              <Stamp className="h-4 w-4 text-muted-foreground" />
+              <Laugh className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-mono" data-testid="stat-stamps">
-                {loading ? '...' : stats?.products?.stamps || 0}
+              <div className="text-2xl font-bold font-mono" data-testid="stat-meme">
+                {loading ? '...' : stats?.products?.meme || 0}
               </div>
             </CardContent>
           </Card>
@@ -105,13 +107,27 @@ const AdminDashboardPage = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Enveloppes
+                Modern
               </CardTitle>
-              <Mail className="h-4 w-4 text-muted-foreground" />
+              <Sparkles className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-mono" data-testid="stat-envelopes">
-                {loading ? '...' : stats?.products?.envelopes || 0}
+              <div className="text-2xl font-bold font-mono" data-testid="stat-modern">
+                {loading ? '...' : stats?.products?.modern || 0}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Personnalisés
+              </CardTitle>
+              <Palette className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold font-mono" data-testid="stat-custom">
+                {loading ? '...' : stats?.products?.custom || 0}
               </div>
             </CardContent>
           </Card>
@@ -140,7 +156,7 @@ const AdminDashboardPage = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Produits vendus
+                T-shirts vendus
               </CardTitle>
               <TrendingUp className="h-4 w-4 text-green-500" />
             </CardHeader>
@@ -199,7 +215,7 @@ const AdminDashboardPage = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Link to="/admin/ajouter" className="block">
             <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
               <CardContent className="pt-6">
@@ -210,7 +226,7 @@ const AdminDashboardPage = () => {
                   <div>
                     <h3 className="font-serif font-semibold">Ajouter un produit</h3>
                     <p className="text-sm text-muted-foreground">
-                      Analyser et ajouter un nouveau timbre ou enveloppe
+                      Ajouter un nouveau t-shirt à la boutique
                     </p>
                   </div>
                 </div>
@@ -247,6 +263,24 @@ const AdminDashboardPage = () => {
                     <h3 className="font-serif font-semibold">Voir les commandes</h3>
                     <p className="text-sm text-muted-foreground">
                       Suivre et gérer les commandes clients
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/admin/categories" className="block">
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Tag className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif font-semibold">Catégories & Styles</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Gérer les listes de catégories et styles
                     </p>
                   </div>
                 </div>

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Mail, Filter, Search } from 'lucide-react';
-import { Button } from '../components/ui/button';
+import { Laugh, Filter, Search } from 'lucide-react';
 import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '../components/ui/sheet';
 import ProductCard from '../components/ProductCard';
 import FilterSidebar from '../components/FilterSidebar';
 import { productsApi } from '../lib/api';
 
-const EnvelopesPage = () => {
+const MemesPage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ countries: [], categories: [] });
@@ -31,7 +31,7 @@ const EnvelopesPage = () => {
       try {
         setLoading(true);
         const params = {
-          product_type: 'envelope',
+          product_type: 'meme',
           ...Object.fromEntries(
             Object.entries(filters).filter(([_, v]) => v !== null)
           )
@@ -53,7 +53,6 @@ const EnvelopesPage = () => {
 
     fetchProducts();
   }, [filters]);
-
   
   // Filter products by search query
   const filteredProducts = products.filter(p => {
@@ -69,31 +68,31 @@ const EnvelopesPage = () => {
   });
 
   return (
-    <div className="animate-fade-in" data-testid="envelopes-page">
+    <div className="animate-fade-in" data-testid="memes-page">
       {/* Header */}
       <div className="bg-muted/30 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
           <div className="flex items-center gap-3 mb-2">
-            <Mail className="h-8 w-8 text-primary" />
+            <Laugh className="h-8 w-8 text-primary" />
             <h1 className="font-serif text-3xl md:text-4xl font-bold text-foreground">
-              Enveloppes
+              T-Shirts Memes & Influenceurs
             </h1>
           </div>
           <p className="text-muted-foreground">
-            Explorez notre sélection d'enveloppes historiques et commémoratives
+            Les designs les plus drôles inspirés des memes et des influenceurs du moment
           </p>
           </div>
             
             <div className="relative w-full md:w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Rechercher une enveloppe..."
+                placeholder="Rechercher un t-shirt meme..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
-                data-testid="envelopes-search"
+                data-testid="memes-search"
               />
             </div>
           </div>
@@ -141,7 +140,7 @@ const EnvelopesPage = () => {
             {/* Results Count */}
             <div className="mb-6">
               <p className="text-muted-foreground">
-                 {loading ? 'Chargement...' : `${filteredProducts.length} enveloppe${filteredProducts.length !== 1 ? 's' : ''} trouvée${filteredProducts.length !== 1 ? 's' : ''}`}
+                {loading ? 'Chargement...' : `${filteredProducts.length} t-shirt${filteredProducts.length !== 1 ? 's' : ''} trouvé${filteredProducts.length !== 1 ? 's' : ''}`}
               </p>
             </div>
 
@@ -167,9 +166,9 @@ const EnvelopesPage = () => {
               </div>
             ) : (
               <div className="text-center py-16">
-                <Mail className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                <Laugh className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
                 <h3 className="font-serif text-xl font-semibold text-foreground mb-2">
-                  Aucune enveloppe trouvée
+                  Aucun t-shirt trouvé
                 </h3>
                 <p className="text-muted-foreground">
                   {searchQuery ? 'Aucun résultat pour votre recherche' : 'Essayez de modifier vos filtres pour voir plus de résultats'}
@@ -183,4 +182,4 @@ const EnvelopesPage = () => {
   );
 };
 
-export default EnvelopesPage;
+export default MemesPage;

@@ -64,15 +64,15 @@ const CartPage = () => {
               Découvrez notre collection et ajoutez des articles à votre panier
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Link to="/timbres">
+              <Link to="/memes">
                 <Button variant="outline" className="gap-2">
                   <ArrowLeft className="h-4 w-4" />
-                  Voir les timbres
+                  Voir les memes
                 </Button>
               </Link>
-              <Link to="/enveloppes">
+              <Link to="/modernes">
                 <Button variant="outline" className="gap-2">
-                  Voir les enveloppes
+                  Voir le style modern
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
@@ -82,7 +82,9 @@ const CartPage = () => {
           <div className="space-y-6">
             {/* Cart Items */}
             <div className="bg-card rounded-lg border border-border divide-y divide-border">
-              {cart.items.map(({ product, quantity }) => (
+              {cart.items.map(({ product, quantity, size, color, unit_price, custom_notes, custom_image_base64, custom_file_type }) => {
+                const price = unit_price ?? product.price;
+                return (
                 <div 
                   key={product.id} 
                   className="p-4 flex gap-4"
@@ -91,10 +93,7 @@ const CartPage = () => {
                   {/* Image */}
                   <div className="w-24 h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
                     <img
-                      src={product.image_url || (product.product_type === 'stamp' 
-                        ? 'https://images.unsplash.com/photo-1767635360163-0633939b9f4b?w=200&h=200&fit=crop'
-                        : 'https://images.unsplash.com/photo-1767869171276-afe238e1df22?w=200&h=200&fit=crop'
-                      )}
+                      src={custom_image_base64 || product.image_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=200&h=200&fit=crop'}
                       alt={product.name}
                       className="w-full h-full object-cover"
                     />
@@ -109,10 +108,20 @@ const CartPage = () => {
                       {product.name}
                     </Link>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {product.country} {product.year && `• ${product.year}`}
+                      {[size, color].filter(Boolean).join(' • ')}
                     </p>
+                    {custom_notes && (
+                      <p className="text-xs text-muted-foreground mt-1 italic line-clamp-2">
+                        "{custom_notes}"
+                      </p>
+                    )}
+                    {custom_file_type && (
+                      <p className="text-xs text-green-700 mt-1">
+                        Fichier joint ({custom_file_type === 'application/pdf' ? 'PDF' : 'PNG'})
+                      </p>
+                    )}
                     <p className="font-mono font-semibold text-primary mt-2">
-                      {product.price.toFixed(2)} €
+                      {price.toFixed(2)} €
                     </p>
                     
                     {/* Quantity Selector */}
@@ -121,7 +130,7 @@ const CartPage = () => {
                       <div className="flex items-center border rounded-md">
                         <button
                           type="button"
-                          onClick={() => handleQuantityChange(product.id, quantity - 1, product.stock_quantity || 1)}
+                          onClick={() => handleQuantityChange(product.id, quantity - 1, product.unlimited_stock ? Infinity : (product.stock_quantity || 1))}
                           className="px-2 py-1 hover:bg-muted transition-colors disabled:opacity-50"
                           disabled={quantity <= 1 || loading}
                         >
@@ -130,14 +139,14 @@ const CartPage = () => {
                         <span className="px-3 py-1 font-medium min-w-[2.5rem] text-center text-sm">{quantity}</span>
                         <button
                           type="button"
-                          onClick={() => handleQuantityChange(product.id, quantity + 1, product.stock_quantity || 1)}
+                          onClick={() => handleQuantityChange(product.id, quantity + 1, product.unlimited_stock ? Infinity : (product.stock_quantity || 1))}
                           className="px-2 py-1 hover:bg-muted transition-colors disabled:opacity-50"
-                          disabled={quantity >= (product.stock_quantity || 1) || loading}
+                          disabled={(!product.unlimited_stock && quantity >= (product.stock_quantity || 1)) || loading}
                         >
                           <Plus className="h-3 w-3" />
                         </button>
                       </div>
-                      {(product.stock_quantity || 1) > 1 && (
+                      {!product.unlimited_stock && (product.stock_quantity || 1) > 1 && (
                         <span className="text-xs text-muted-foreground">
                           ({product.stock_quantity} dispo.)
                         </span>
@@ -148,7 +157,7 @@ const CartPage = () => {
                   {/* Line Total & Remove */}
                   <div className="flex flex-col items-end justify-between">
                     <span className="font-mono font-semibold text-primary">
-                      {(product.price * quantity).toFixed(2)} €
+                      {(price * quantity).toFixed(2)} €
                     </span>
                     <Button
                       variant="ghost"
@@ -162,7 +171,8 @@ const CartPage = () => {
                     </Button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <Separator />
@@ -216,7 +226,7 @@ const CartPage = () => {
 
             {/* Continue Shopping */}
             <div className="text-center">
-              <Link to="/timbres" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/memes" className="text-muted-foreground hover:text-foreground transition-colors">
                 ← Continuer mes achats
               </Link>
             </div>

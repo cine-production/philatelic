@@ -35,6 +35,25 @@ export const productsApi = {
   getStats: () => api.get('/products/stats/summary')
 };
 
+// Catégories & Styles API
+export const categoriesApi = {
+  getAll: () => api.get('/categories'),
+  create: (name) => api.post('/categories', { name }),
+  delete: (id) => api.delete(`/categories/${id}`)
+};
+
+export const stylesApi = {
+  getAll: () => api.get('/styles'),
+  create: (name) => api.post('/styles', { name }),
+  delete: (id) => api.delete(`/styles/${id}`)
+};
+
+export const colorsApi = {
+  getAll: () => api.get('/colors'),
+  create: (name) => api.post('/colors', { name }),
+  delete: (id) => api.delete(`/colors/${id}`)
+};
+
 // Orders API
 export const ordersApi = {
   create: (data) => api.post('/orders', data),

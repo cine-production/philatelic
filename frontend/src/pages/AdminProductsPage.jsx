@@ -7,16 +7,12 @@ import {
   Edit, 
   Search, 
   Loader2,
-  Save,
-  X,
   Eye,
   MoreHorizontal
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
-import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
 import {
   Table,
   TableBody,
@@ -25,13 +21,6 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,39 +32,28 @@ import {
   AlertDialogTitle,
 } from '../components/ui/alert-dialog';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../components/ui/dialog';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
-import { Switch } from '../components/ui/switch';
 import { useAuth } from '../context/AuthContext';
 import { productsApi } from '../lib/api';
 import { toast } from 'sonner';
 
-const conditionLabels = {
-  mint: 'Neuf',
-  excellent: 'Excellent',
-  good: 'Bon',
-  fair: 'Correct',
-  poor: 'Usé'
+const typeLabels = {
+  meme: 'Meme',
+  modern: 'Modern',
+  custom: 'Personnalisé'
 };
 
 const rarityLabels = {
-  common: 'Commun',
-  uncommon: 'Peu commun',
-  rare: 'Rare',
-  very_rare: 'Très rare',
-  exceptional: 'Exceptionnel'
+  common: 'Standard',
+  uncommon: 'Petite série',
+  rare: 'Édition limitée',
+  very_rare: 'Édition très limitée',
+  exceptional: 'Collector'
 };
 
 const AdminProductsPage = () => {
@@ -87,11 +65,6 @@ const AdminProductsPage = () => {
   const [deleting, setDeleting] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
-  
-  // Edit state
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!authLoading && (!isAuthenticated || !isAdmin)) {
@@ -140,59 +113,8 @@ const AdminProductsPage = () => {
     }
   };
 
-  const handleEditClick = (product) => {
-    setEditingProduct({ ...product });
-    setEditDialogOpen(true);
-  };
-
-  const handleEditChange = (field, value) => {
-    setEditingProduct(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingProduct) return;
-    
-    try {
-      setSaving(true);
-      
-      const updateData = {
-        name: editingProduct.name,
-        description: editingProduct.description,
-        condition: editingProduct.condition,
-        is_obliterated: editingProduct.is_obliterated,
-        year: editingProduct.year ? parseInt(editingProduct.year) : null,
-        country: editingProduct.country,
-        category: editingProduct.category,
-        rarity: editingProduct.rarity,
-        price: parseFloat(editingProduct.price),
-        estimated_value: editingProduct.estimated_value ? parseFloat(editingProduct.estimated_value) : null,
-        history: editingProduct.history,
-        is_sold: editingProduct.is_sold,
-        stock_quantity: editingProduct.stock_quantity ? parseInt(editingProduct.stock_quantity) : 1,
-        classification_id: editingProduct.classification_id
-      };
-      
-      await productsApi.update(editingProduct.id, updateData);
-      
-      // Update local state
-      setProducts(prev => prev.map(p => 
-        p.id === editingProduct.id ? { ...p, ...updateData } : p
-      ));
-      
-      toast.success('Produit modifié', { description: editingProduct.name });
-      setEditDialogOpen(false);
-      setEditingProduct(null);
-    } catch (error) {
-      console.error('Save error:', error);
-      toast.error('Erreur lors de la modification');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.category?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -234,7 +156,7 @@ const AdminProductsPage = () => {
             <Link to="/admin/ajouter">
               <Button className="btn-burgundy gap-2">
                 <Package className="h-4 w-4" />
-                Scanner un produit
+                Ajouter un produit
               </Button>
             </Link>
           </div>
@@ -255,7 +177,7 @@ const AdminProductsPage = () => {
               </p>
               {!searchQuery && (
                 <Link to="/admin/ajouter">
-                  <Button className="btn-burgundy">Scanner votre premier produit</Button>
+                  <Button className="btn-burgundy">Ajouter votre premier produit</Button>
                 </Link>
               )}
             </div>
@@ -265,9 +187,9 @@ const AdminProductsPage = () => {
                 <TableRow>
                   <TableHead>Produit</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Pays</TableHead>
-                  <TableHead>État</TableHead>
-                  <TableHead>Rareté</TableHead>
+                  <TableHead>Catégorie</TableHead>
+                  <TableHead>Tailles</TableHead>
+                  <TableHead>Édition</TableHead>
                   <TableHead>Prix</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -278,28 +200,21 @@ const AdminProductsPage = () => {
                   <TableRow key={product.id} data-testid={`product-row-${product.id}`}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                          <img
-                            src={product.image_url || 'https://images.unsplash.com/photo-1767635360163-0633939b9f4b?w=100&h=100&fit=crop'}
-                            alt={product.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div>
-                          <p className="font-medium line-clamp-1">{product.name}</p>
-                          {product.year && (
-                            <p className="text-xs text-muted-foreground">{product.year}</p>
-                          )}
-                        </div>
+                        <img
+                          src={product.image_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&h=100&fit=crop'}
+                          alt={product.name}
+                          className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                        />
+                        <p className="font-medium line-clamp-1">{product.name}</p>
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {product.product_type === 'stamp' ? 'Timbre' : 'Enveloppe'}
+                        {typeLabels[product.product_type] || product.product_type}
                       </Badge>
                     </TableCell>
-                    <TableCell>{product.country}</TableCell>
-                    <TableCell>{conditionLabels[product.condition]}</TableCell>
+                    <TableCell>{product.category}</TableCell>
+                    <TableCell>{(product.sizes || []).join(', ')}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-xs">
                         {rarityLabels[product.rarity]}
@@ -329,12 +244,11 @@ const AdminProductsPage = () => {
                               Voir sur le site
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleEditClick(product)}
-                            className="flex items-center gap-2"
-                          >
-                            <Edit className="h-4 w-4" />
-                            Modifier
+                          <DropdownMenuItem asChild>
+                            <Link to={`/admin/produits/${product.id}/modifier`} className="flex items-center gap-2">
+                              <Edit className="h-4 w-4" />
+                              Modifier
+                            </Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
@@ -384,208 +298,6 @@ const AdminProductsPage = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Modifier le produit</DialogTitle>
-            <DialogDescription>
-              Modifiez les informations du produit et enregistrez vos changements.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {editingProduct && (
-            <div className="space-y-4 py-4">
-              {/* Image Preview */}
-              {editingProduct.image_url && (
-                <div className="flex justify-center">
-                  <img 
-                    src={editingProduct.image_url} 
-                    alt={editingProduct.name}
-                    className="max-h-40 rounded-lg"
-                  />
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <Label>Nom *</Label>
-                  <Input
-                    value={editingProduct.name}
-                    onChange={(e) => handleEditChange('name', e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <Label>Pays *</Label>
-                  <Input
-                    value={editingProduct.country}
-                    onChange={(e) => handleEditChange('country', e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <Label>Année</Label>
-                  <Input
-                    type="number"
-                    value={editingProduct.year || ''}
-                    onChange={(e) => handleEditChange('year', e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <Label>État</Label>
-                  <Select
-                    value={editingProduct.condition}
-                    onValueChange={(v) => handleEditChange('condition', v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(conditionLabels).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>{label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label>Rareté</Label>
-                  <Select
-                    value={editingProduct.rarity}
-                    onValueChange={(v) => handleEditChange('rarity', v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(rarityLabels).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>{label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label>Catégorie</Label>
-                  <Input
-                    value={editingProduct.category || ''}
-                    onChange={(e) => handleEditChange('category', e.target.value)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <Label>Oblitéré</Label>
-                  <Switch
-                    checked={editingProduct.is_obliterated}
-                    onCheckedChange={(checked) => handleEditChange('is_obliterated', checked)}
-                  />
-                </div>
-
-                <div>
-                  <Label>Prix (€) *</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={editingProduct.price}
-                    onChange={(e) => handleEditChange('price', e.target.value)}
-                    className="font-mono"
-                  />
-                </div>
-
-                <div>
-                  <Label>Valeur estimée (€)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={editingProduct.estimated_value || ''}
-                    onChange={(e) => handleEditChange('estimated_value', e.target.value)}
-                    className="font-mono"
-                  />
-                </div>
-
-                
-                <div>
-                  <Label>Quantité en stock</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={editingProduct.stock_quantity ?? 1}
-                    onChange={(e) => handleEditChange('stock_quantity', e.target.value)}
-                    data-testid="edit-stock-quantity"
-                  />
-                </div>
-
-                <div>
-                  <Label>ID Classification</Label>
-                  <Input
-                    value={editingProduct.classification_id || ''}
-                    onChange={(e) => handleEditChange('classification_id', e.target.value)}
-                    placeholder="Ex: 1960-FR-COM-001"
-                    className="font-mono"
-                    data-testid="edit-classification-id"
-                  />
-                </div>
-
-
-                <div className="col-span-2">
-                  <Label>Description</Label>
-                  <Textarea
-                    value={editingProduct.description || ''}
-                    onChange={(e) => handleEditChange('description', e.target.value)}
-                    rows={3}
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <Label>Histoire</Label>
-                  <Textarea
-                    value={editingProduct.history || ''}
-                    onChange={(e) => handleEditChange('history', e.target.value)}
-                    rows={2}
-                  />
-                </div>
-
-                <div className="col-span-2 flex items-center justify-between p-3 border rounded-lg bg-muted/50">
-                  <div>
-                    <Label>Marquer comme vendu</Label>
-                    <p className="text-xs text-muted-foreground">Le produit ne sera plus visible dans la boutique</p>
-                  </div>
-                  <Switch
-                    checked={editingProduct.is_sold}
-                    onCheckedChange={(checked) => handleEditChange('is_sold', checked)}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              <X className="h-4 w-4 mr-2" />
-              Annuler
-            </Button>
-            <Button 
-              onClick={handleSaveEdit} 
-              className="btn-burgundy gap-2"
-              disabled={saving}
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Enregistrement...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  Enregistrer
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

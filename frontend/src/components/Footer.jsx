@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Mail, MapPin } from 'lucide-react';
+import { CUSTOM_TSHIRTS_ENABLED } from '../config/features';
 
 const Footer = () => {
   return (
@@ -10,13 +11,12 @@ const Footer = () => {
           <div>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-serif text-xl font-bold">PC</span>
+                <span className="text-primary-foreground font-serif text-xl font-bold">👕</span>
               </div>
-              <span className="font-serif text-xl font-semibold">Philatelic Curator</span>
+              <span className="font-serif text-xl font-semibold">MemeWear</span>
             </div>
             <p className="text-secondary-foreground/70 text-sm leading-relaxed">
-              Votre expert en timbres et enveloppes de collection. 
-              Découvrez des pièces rares et authentifiées par notre IA.
+              Des t-shirts drôles inspirés des memes et des influenceurs, et des designs modernes épurés.
             </p>
           </div>
 
@@ -26,20 +26,30 @@ const Footer = () => {
             <ul className="space-y-2">
               <li>
                 <Link 
-                  to="/timbres" 
+                  to="/memes" 
                   className="text-secondary-foreground/70 hover:text-secondary-foreground text-sm transition-colors"
                 >
-                  Timbres
+                  Memes
                 </Link>
               </li>
               <li>
                 <Link 
-                  to="/enveloppes" 
+                  to="/modernes" 
                   className="text-secondary-foreground/70 hover:text-secondary-foreground text-sm transition-colors"
                 >
-                  Enveloppes
+                  Modern
                 </Link>
               </li>
+              {CUSTOM_TSHIRTS_ENABLED && (
+                <li>
+                  <Link 
+                    to="/personnalise" 
+                    className="text-secondary-foreground/70 hover:text-secondary-foreground text-sm transition-colors"
+                  >
+                    Personnalisé
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link 
                   to="/panier" 
@@ -57,7 +67,7 @@ const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-center gap-2 text-secondary-foreground/70 text-sm">
                 <Mail className="h-4 w-4" />
-                contact@philatelic-curator.com
+                contact@memewear.fr
               </li>
               <li className="flex items-center gap-2 text-secondary-foreground/70 text-sm">
                 <MapPin className="h-4 w-4" />
@@ -69,7 +79,7 @@ const Footer = () => {
 
         <div className="border-t border-secondary-foreground/20 mt-8 pt-8 text-center">
           <p className="text-secondary-foreground/50 text-sm">
-            © {new Date().getFullYear()} Philatelic Curator. Tous droits réservés.
+            © {new Date().getFullYear()} MemeWear. Tous droits réservés.
           </p>
         </div>
       </div>

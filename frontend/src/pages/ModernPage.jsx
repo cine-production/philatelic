@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Stamp, Filter, Search } from 'lucide-react';
-import { Input } from '../components/ui/input';
+import { Sparkles, Filter, Search } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '../components/ui/sheet';
 import ProductCard from '../components/ProductCard';
 import FilterSidebar from '../components/FilterSidebar';
 import { productsApi } from '../lib/api';
 
-const StampsPage = () => {
+const ModernPage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ countries: [], categories: [] });
@@ -31,7 +31,7 @@ const StampsPage = () => {
       try {
         setLoading(true);
         const params = {
-          product_type: 'stamp',
+          product_type: 'modern',
           ...Object.fromEntries(
             Object.entries(filters).filter(([_, v]) => v !== null)
           )
@@ -53,6 +53,7 @@ const StampsPage = () => {
 
     fetchProducts();
   }, [filters]);
+
   
   // Filter products by search query
   const filteredProducts = products.filter(p => {
@@ -68,31 +69,31 @@ const StampsPage = () => {
   });
 
   return (
-    <div className="animate-fade-in" data-testid="stamps-page">
+    <div className="animate-fade-in" data-testid="modern-page">
       {/* Header */}
       <div className="bg-muted/30 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
           <div className="flex items-center gap-3 mb-2">
-            <Stamp className="h-8 w-8 text-primary" />
+            <Sparkles className="h-8 w-8 text-primary" />
             <h1 className="font-serif text-3xl md:text-4xl font-bold text-foreground">
-              Timbres
+              T-Shirts Style Moderne
             </h1>
           </div>
           <p className="text-muted-foreground">
-            Découvrez notre collection de timbres rares et classiques du monde entier
+            Des coupes épurées et des designs minimalistes pour un look actuel
           </p>
           </div>
             
             <div className="relative w-full md:w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Rechercher un timbre..."
+                placeholder="Rechercher un t-shirt moderne..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
-                data-testid="stamps-search"
+                data-testid="modern-search"
               />
             </div>
           </div>
@@ -140,7 +141,7 @@ const StampsPage = () => {
             {/* Results Count */}
             <div className="mb-6">
               <p className="text-muted-foreground">
-                {loading ? 'Chargement...' : `${filteredProducts.length} timbre${filteredProducts.length !== 1 ? 's' : ''} trouvé${filteredProducts.length !== 1 ? 's' : ''}`}
+                 {loading ? 'Chargement...' : `${filteredProducts.length} t-shirt${filteredProducts.length !== 1 ? 's' : ''} trouvé${filteredProducts.length !== 1 ? 's' : ''}`}
               </p>
             </div>
 
@@ -166,9 +167,9 @@ const StampsPage = () => {
               </div>
             ) : (
               <div className="text-center py-16">
-                <Stamp className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                <Sparkles className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
                 <h3 className="font-serif text-xl font-semibold text-foreground mb-2">
-                  Aucun timbre trouvé
+                  Aucun t-shirt trouvé
                 </h3>
                 <p className="text-muted-foreground">
                   {searchQuery ? 'Aucun résultat pour votre recherche' : 'Essayez de modifier vos filtres pour voir plus de résultats'}
@@ -182,4 +183,4 @@ const StampsPage = () => {
   );
 };
 
-export default StampsPage;
+export default ModernPage;

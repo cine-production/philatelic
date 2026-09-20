@@ -137,3 +137,39 @@
     display: none !important;
   }
 }
+
+/* ============== Styles décoratifs par édition (rareté) ============== */
+@keyframes shimmer-border {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@keyframes collector-glow {
+  0%, 100% { box-shadow: 0 0 12px 0 rgba(212, 175, 55, 0.35); }
+  50% { box-shadow: 0 0 22px 4px rgba(212, 175, 55, 0.55); }
+}
+
+.edition-uncommon {
+  box-shadow: 0 0 0 1.5px hsl(200, 70%, 55%, 0.5);
+}
+
+.edition-rare {
+  box-shadow: 0 0 0 1.5px hsl(270, 60%, 55%, 0.55);
+}
+
+.edition-very_rare {
+  position: relative;
+  box-shadow: 0 0 0 1.5px hsl(330, 75%, 50%, 0.6);
+}
+
+.edition-exceptional {
+  position: relative;
+  border: 1.5px solid transparent;
+  background-image:
+    linear-gradient(hsl(var(--card)), hsl(var(--card))),
+    linear-gradient(90deg, #d4af37, #f7e08a, #d4af37, #f7e08a);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  background-size: 200% 100%;
+  animation: shimmer-border 3s linear infinite, collector-glow 2.5s ease-in-out infinite;
+}

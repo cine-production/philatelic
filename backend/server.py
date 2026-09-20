@@ -54,7 +54,7 @@ JWT_EXPIRATION_HOURS = 24
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')  # Email admin pour notifications
-SITE_NAME = os.environ.get("SITE_NAME", "Philatelic Curator")
+SITE_NAME = os.environ.get("SITE_NAME", "MemeWear")
 SITE_URL = os.environ.get("SITE_URL", "https://localhost:3000")
 
 if RESEND_API_KEY:
@@ -75,7 +75,7 @@ GEMINI_API_KEY = os.environ.get(
     "GEMINI_API_KEY", "AIzaSyCfP5J30grXthwSvf9bGNL0DXUb2VDAscc"
 )
 
-app = FastAPI(title="Philatelic Curator API")
+app = FastAPI(title="MemeWear API")
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
@@ -88,11 +88,13 @@ logger = logging.getLogger(__name__)
 
 # ============== ENUMS ==============
 class ProductType(str, Enum):
-    STAMP = "stamp"
-    ENVELOPE = "envelope"
+    MEME = "meme"       # T-shirts drôles / memes d'influenceurs
+    MODERN = "modern"   # T-shirts style moderne / minimaliste
+    CUSTOM = "custom"   # T-shirts personnalisés
 
 
 class ProductCondition(str, Enum):
+    # Conservé pour compat technique (utilisé comme "état du stock")
     MINT = "mint"
     EXCELLENT = "excellent"
     GOOD = "good"
@@ -101,11 +103,21 @@ class ProductCondition(str, Enum):
 
 
 class RarityLevel(str, Enum):
+    # Réutilisé comme "niveau d'exclusivité" du design (édition limitée, etc.)
     COMMON = "common"
     UNCOMMON = "uncommon"
     RARE = "rare"
     VERY_RARE = "very_rare"
     EXCEPTIONAL = "exceptional"
+
+
+class TShirtSize(str, Enum):
+    XS = "XS"
+    S = "S"
+    M = "M"
+    L = "L"
+    XL = "XL"
+    XXL = "XXL"
 
 
 class PaymentStatus(str, Enum):
@@ -162,24 +174,41 @@ class TokenResponse(BaseModel):
     user: UserResponse
 
 
+class ColorVariant(BaseModel):
+    color: str
+    price: Optional[float] = None  # prix spécifique à cette couleur (sinon = prix du produit)
+    stock_quantity: int = 0  # ignoré si unlimited_stock=True
+    images: List[str] = []  # images spécifiques à cette couleur (sinon fallback sur "images")
+
+
 class ProductBase(BaseModel):
     name: str
     description: str
-    product_type: ProductType
-    condition: ProductCondition
-    is_obliterated: bool = False
+    product_type: ProductType  # meme | modern | custom
+    condition: ProductCondition = ProductCondition.EXCELLENT
+    is_obliterated: bool = False  # legacy, non utilisé côté t-shirt
     year: Optional[int] = None
-    country: str
-    category: str
-    rarity: RarityLevel
+    country: str = "France"
+    category: str  # ex: "Influenceurs", "Minimaliste", "Streetwear"...
+    style: Optional[str] = None  # ex: "Oversize", "Regular", "Crop"...
+    rarity: RarityLevel = RarityLevel.COMMON  # utilisé comme "édition limitée"
     price: float
-    estimated_value: float
+    estimated_value: float = 0
     history: Optional[str] = None
     print_quantity: Optional[int] = None
-    dimensions: Optional[str] = None
-    image_url: Optional[str] = None
+    dimensions: Optional[str] = None  # ex: matière / coupe ("Coton bio, coupe regular")
+    image_url: Optional[str] = None  # image principale (conservé pour compat, = images[0])
+    images: List[str] = []  # galerie de photos de présentation
     stock_quantity: int = 1
+    unlimited_stock: bool = True  # les t-shirts sont fabriqués à la demande : pas de limite de stock
+    is_preorder: bool = True  # produit en précommande (fabrication après seuil atteint)
+    preorder_threshold: Optional[int] = None  # nb de précommandes nécessaires avant fabrication
+    preorder_count: int = 0  # nb de précommandes déjà reçues (mis à jour automatiquement)
     classification_id: Optional[str] = None
+    sizes: List[str] = ["S", "M", "L", "XL"]
+    colors: List[str] = ["Noir", "Blanc"]  # legacy simple, conservé pour compat
+    color_variants: List[ColorVariant] = []  # couleur -> stock + images dédiées
+    is_customizable: bool = False  # true pour les t-shirts personnalisables
 
 
 class ProductCreate(ProductBase):
@@ -189,6 +218,7 @@ class ProductCreate(ProductBase):
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    product_type: Optional[ProductType] = None
     condition: Optional[ProductCondition] = None
     is_obliterated: Optional[bool] = None
     year: Optional[int] = None
@@ -201,9 +231,19 @@ class ProductUpdate(BaseModel):
     print_quantity: Optional[int] = None
     dimensions: Optional[str] = None
     image_url: Optional[str] = None
+    images: Optional[List[str]] = None
     is_sold: Optional[bool] = None
     stock_quantity: Optional[int] = None
+    unlimited_stock: Optional[bool] = None
+    is_preorder: Optional[bool] = None
+    preorder_threshold: Optional[int] = None
+    preorder_count: Optional[int] = None
+    style: Optional[str] = None
     classification_id: Optional[str] = None
+    sizes: Optional[List[str]] = None
+    colors: Optional[List[str]] = None
+    color_variants: Optional[List[ColorVariant]] = None
+    is_customizable: Optional[bool] = None
 
 
 class ProductResponse(ProductBase):
@@ -219,6 +259,13 @@ class ProductResponse(ProductBase):
 class CartItem(BaseModel):
     product_id: str
     quantity: int = 1
+    size: Optional[str] = None
+    color: Optional[str] = None
+    custom_notes: Optional[str] = None  # texte/description libre pour un t-shirt personnalisé
+    custom_image_base64: Optional[str] = None  # aperçu (PNG ou 1ère page PDF rendue)
+    custom_file_base64: Optional[str] = None  # fichier original envoyé (PNG ou PDF) pour la fabrication
+    custom_file_type: Optional[str] = None  # mime type du fichier original
+    custom_position: Optional[Dict[str, float]] = None  # {x, y, scale} choisi par le client sur l'aperçu
 
 
 class CartResponse(BaseModel):
@@ -283,6 +330,15 @@ class AIAnalysisResponse(BaseModel):
     description: str = ""
     confidence: float = 0.7
     classification_id: Optional[str] = None
+
+
+class TaxonomyItem(BaseModel):
+    name: str
+
+
+class TaxonomyResponse(BaseModel):
+    id: str
+    name: str
 
 
 class CheckoutRequest(BaseModel):
@@ -391,7 +447,7 @@ def get_order_confirmation_email(order: dict) -> str:
         </div>
         
         <div style="background: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666;">
-            <p>{SITE_NAME} - Votre expert en philatélie</p>
+            <p>{SITE_NAME} - Vos t-shirts, votre style</p>
         </div>
     </body>
     </html>
@@ -441,7 +497,7 @@ def get_shipping_email(order: dict) -> str:
         </div>
         
         <div style="background: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666;">
-            <p>{SITE_NAME} - Votre expert en philatélie</p>
+            <p>{SITE_NAME} - Vos t-shirts, votre style</p>
         </div>
     </body>
     </html>
@@ -479,7 +535,7 @@ def get_delivered_email(order: dict) -> str:
         </div>
         
         <div style="background: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666;">
-            <p>{SITE_NAME} - Votre expert en philatélie</p>
+            <p>{SITE_NAME} - Vos t-shirts, votre style</p>
         </div>
     </body>
     </html>
@@ -621,6 +677,15 @@ async def require_admin(
 # ============== AUTH ROUTES ==============
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register(user: UserCreate):
+    # Ce site n'a qu'un seul administrateur (le propriétaire de la boutique) :
+    # l'inscription publique est fermée dès qu'un compte existe déjà.
+    user_count = await db.users.count_documents({})
+    if user_count > 0:
+        raise HTTPException(
+            status_code=403,
+            detail="Les inscriptions sont fermées. Contactez l'administrateur du site.",
+        )
+
     existing = await db.users.find_one({"email": user.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -628,9 +693,8 @@ async def register(user: UserCreate):
     user_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc)
 
-    # First user becomes admin
-    user_count = await db.users.count_documents({})
-    is_admin = user_count == 0
+    # Le tout premier compte créé devient automatiquement administrateur
+    is_admin = True
 
     user_doc = {
         "id": user_id,
@@ -720,6 +784,10 @@ async def get_products(
 
     if product_type:
         query["product_type"] = product_type
+    else:
+        # Masque les anciens produits (timbres/enveloppes) qui ne correspondent plus
+        # aux catégories actuelles, pour éviter une erreur de validation
+        query["product_type"] = {"$in": [t.value for t in ProductType]}
     if condition:
         query["condition"] = condition
     if country:
@@ -774,6 +842,19 @@ async def create_product(product: ProductCreate, admin: Dict = Depends(require_a
     now = datetime.now(timezone.utc)
 
     product_doc = product.model_dump()
+    # La personnalisation n'est possible que pour les produits de type "custom"
+    # (les bases neutres pour t-shirts personnalisés), jamais pour meme/modern.
+    if product_doc.get("product_type") != ProductType.CUSTOM.value:
+        product_doc["is_customizable"] = False
+    elif product_doc.get("product_type") == ProductType.CUSTOM.value:
+        product_doc["is_customizable"] = True
+
+    # image_url reste le champ "principal" utilisé par le reste du code (panier, emails...)
+    if not product_doc.get("image_url") and product_doc.get("images"):
+        product_doc["image_url"] = product_doc["images"][0]
+    elif product_doc.get("image_url") and not product_doc.get("images"):
+        product_doc["images"] = [product_doc["image_url"]]
+
     product_doc["id"] = product_id
     product_doc["is_sold"] = False
     product_doc["created_at"] = now.isoformat()
@@ -797,6 +878,18 @@ async def update_product(
         raise HTTPException(status_code=404, detail="Product not found")
 
     update_data = {k: v for k, v in update.model_dump().items() if v is not None}
+
+    # La personnalisation n'est possible que pour les produits de type "custom"
+    resulting_type = update_data.get("product_type", existing.get("product_type"))
+    if resulting_type != ProductType.CUSTOM.value:
+        update_data["is_customizable"] = False
+    elif "product_type" in update_data:
+        # on vient de passer le produit en type "custom" : personnalisable par défaut
+        update_data.setdefault("is_customizable", True)
+
+    if "images" in update_data and update_data["images"] and "image_url" not in update_data:
+        update_data["image_url"] = update_data["images"][0]
+
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     await db.products.update_one({"id": product_id}, {"$set": update_data})
@@ -819,11 +912,14 @@ async def delete_product(product_id: str, admin: Dict = Depends(require_admin)):
 
 @api_router.get("/products/stats/summary")
 async def get_products_stats():
-    stamps_count = await db.products.count_documents(
-        {"product_type": "stamp", "is_sold": False}
+    meme_count = await db.products.count_documents(
+        {"product_type": "meme", "is_sold": False}
     )
-    envelopes_count = await db.products.count_documents(
-        {"product_type": "envelope", "is_sold": False}
+    modern_count = await db.products.count_documents(
+        {"product_type": "modern", "is_sold": False}
+    )
+    custom_count = await db.products.count_documents(
+        {"product_type": "custom", "is_sold": False}
     )
     sold_count = await db.products.count_documents({"is_sold": True})
 
@@ -831,8 +927,12 @@ async def get_products_stats():
     categories = await db.products.distinct("category", {"is_sold": False})
 
     return {
-        "stamps_count": stamps_count,
-        "envelopes_count": envelopes_count,
+        "meme_count": meme_count,
+        "modern_count": modern_count,
+        "custom_count": custom_count,
+        # alias conservés pour compat avec d'anciens appels front
+        "stamps_count": meme_count,
+        "envelopes_count": modern_count,
         "sold_count": sold_count,
         "countries": countries,
         "categories": categories,
@@ -857,10 +957,22 @@ async def get_cart(session_id: str = Header(None, alias="X-Session-ID")):
             {"id": item["product_id"], "is_sold": False}, {"_id": 0}
         )
         if product:
+            effective_price = get_effective_price(product, item.get("color"))
             items_with_products.append(
-                {"product": product, "quantity": item["quantity"]}
+                {
+                    "product": product,
+                    "quantity": item["quantity"],
+                    "size": item.get("size"),
+                    "color": item.get("color"),
+                    "unit_price": effective_price,
+                    "custom_notes": item.get("custom_notes"),
+                    "custom_image_base64": item.get("custom_image_base64"),
+                    "custom_file_base64": item.get("custom_file_base64"),
+                    "custom_file_type": item.get("custom_file_type"),
+                    "custom_position": item.get("custom_position"),
+                }
             )
-            total += product["price"] * item["quantity"]
+            total += effective_price * item["quantity"]
 
     return CartResponse(items=items_with_products, total=round(total, 2))
 
@@ -876,26 +988,60 @@ async def add_to_cart(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found or already sold")
 
-    # Check stock
-    stock = product.get("stock_quantity", 1)
-    if stock <= 0:
-        raise HTTPException(status_code=400, detail="Produit en rupture de stock")
+    # Check stock (sauf si stock illimité, cas des t-shirts fabriqués à la demande)
+    available = get_available_stock(product, item.color)
+    if available is None:
+        quantity = item.quantity
+    else:
+        if available <= 0:
+            raise HTTPException(status_code=400, detail="Produit en rupture de stock pour cette couleur")
+        quantity = min(item.quantity, available)  # Cap at available stock
 
-    quantity = min(item.quantity, stock)  # Cap at available stock
+    new_item = {
+        "product_id": item.product_id,
+        "quantity": quantity,
+        "size": item.size,
+        "color": item.color,
+        "custom_notes": item.custom_notes,
+        "custom_image_base64": item.custom_image_base64,
+        "custom_file_base64": item.custom_file_base64,
+        "custom_file_type": item.custom_file_type,
+        "custom_position": item.custom_position,
+    }
 
     cart = await db.carts.find_one({"session_id": session_id})
 
     if cart:
+        # Une ligne est fusionnable seulement si même produit + même taille/couleur
+        # (un t-shirt personnalisé avec un visuel différent reste une ligne distincte)
         existing_item = next(
-            (i for i in cart["items"] if i["product_id"] == item.product_id), None
+            (
+                i
+                for i in cart["items"]
+                if i["product_id"] == item.product_id
+                and i.get("size") == item.size
+                and i.get("color") == item.color
+                and not item.custom_image_base64
+                and not i.get("custom_image_base64")
+            ),
+            None,
         )
 
         if existing_item:
             # Update quantity if item exists
-            new_qty = min(existing_item["quantity"] + quantity, stock)
+            available = get_available_stock(product, item.color)
+            if available is None:
+                new_qty = existing_item["quantity"] + quantity
+            else:
+                new_qty = min(existing_item["quantity"] + quantity, available)
 
             await db.carts.update_one(
-                {"session_id": session_id, "items.product_id": item.product_id},
+                {
+                    "session_id": session_id,
+                    "items.product_id": item.product_id,
+                    "items.size": item.size,
+                    "items.color": item.color,
+                },
                 {"$set": {"items.$.quantity": new_qty}},
             )
 
@@ -903,7 +1049,7 @@ async def add_to_cart(
             # Add new item to existing cart
             await db.carts.update_one(
                 {"session_id": session_id},
-                {"$push": {"items": {"product_id": item.product_id, "quantity": quantity}}},
+                {"$push": {"items": new_item}},
             )
 
     else:
@@ -911,7 +1057,7 @@ async def add_to_cart(
         await db.carts.insert_one(
             {
                 "session_id": session_id,
-                "items": [{"product_id": item.product_id, "quantity": quantity}],
+                "items": [new_item],
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
         )
@@ -948,9 +1094,17 @@ async def update_cart_quantity(product_id: str, request: UpdateQuantityRequest, 
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     
-    stock = product.get("stock_quantity", 1)
-    if request.quantity > stock:
-        raise HTTPException(status_code=400, detail=f"Stock insuffisant (max: {stock})")
+    # Check product stock (sauf si stock illimité)
+    if not product.get("unlimited_stock", False):
+        cart = await db.carts.find_one({"session_id": session_id})
+        item_color = None
+        if cart:
+            existing = next((i for i in cart.get("items", []) if i["product_id"] == product_id), None)
+            if existing:
+                item_color = existing.get("color")
+        available = get_available_stock(product, item_color)
+        if available is not None and request.quantity > available:
+            raise HTTPException(status_code=400, detail=f"Stock insuffisant (max: {available})")
     
     if request.quantity < 1:
         # Remove from cart if quantity is 0 or less
@@ -987,6 +1141,71 @@ def generate_tracking_code():
     return "".join(random.choices(chars, k=8))
 
 
+# ============== HELPERS: STOCK / PRÉCOMMANDE ==============
+def get_effective_price(product: dict, color: Optional[str] = None) -> float:
+    """Retourne le prix à appliquer : celui de la variante couleur si défini, sinon le prix produit."""
+    variants = product.get("color_variants") or []
+    if color and variants:
+        for v in variants:
+            if v.get("color") == color and v.get("price") is not None:
+                return v.get("price")
+    return product.get("price", 0)
+
+
+def get_available_stock(product: dict, color: Optional[str] = None) -> Optional[int]:
+    """Retourne le stock disponible pour un produit (et une couleur si fournie).
+    Retourne None si le stock est illimité (pas de vérification à faire)."""
+    if product.get("unlimited_stock", False):
+        return None
+
+    variants = product.get("color_variants") or []
+    if color and variants:
+        for v in variants:
+            if v.get("color") == color:
+                return v.get("stock_quantity", 0)
+        # couleur demandée mais absente des variantes -> aucun stock défini
+        return 0
+
+    return product.get("stock_quantity", 1)
+
+
+async def apply_order_to_products(order: dict):
+    """Décrémente le stock (sauf si stock illimité) et incrémente le compteur
+    de précommandes pour chaque produit d'une commande payée."""
+    for item in order.get("items", []):
+        product = await db.products.find_one({"id": item["product_id"]})
+        if not product:
+            continue
+
+        update_data = {}
+
+        if product.get("is_preorder"):
+            update_data["preorder_count"] = product.get("preorder_count", 0) + item["quantity"]
+
+        if not product.get("unlimited_stock", False):
+            variants = product.get("color_variants") or []
+            color = item.get("color")
+
+            if color and variants:
+                new_variants = []
+                for v in variants:
+                    if v.get("color") == color:
+                        v = {**v, "stock_quantity": max(0, v.get("stock_quantity", 0) - item["quantity"])}
+                    new_variants.append(v)
+                update_data["color_variants"] = new_variants
+                # is_sold seulement si TOUTES les couleurs sont épuisées
+                if all(v.get("stock_quantity", 0) <= 0 for v in new_variants):
+                    update_data["is_sold"] = True
+            else:
+                new_stock = max(0, product.get("stock_quantity", 1) - item["quantity"])
+                update_data["stock_quantity"] = new_stock
+                if new_stock == 0:
+                    update_data["is_sold"] = True
+
+        if update_data:
+            await db.products.update_one({"id": item["product_id"]}, {"$set": update_data})
+
+
 @api_router.post("/orders", response_model=OrderResponse)
 async def create_order(
     order: OrderCreate, session_id: str = Header(None, alias="X-Session-ID")
@@ -1009,9 +1228,9 @@ async def create_order(
             raise HTTPException(
                 status_code=400, detail=f"Product {item['product_id']} not available"
             )
-        # Check stock
-        stock = product.get("stock_quantity", 1)
-        if stock < item["quantity"]:
+        # Check stock (sauf si stock illimité, cas des t-shirts fabriqués à la demande)
+        available = get_available_stock(product, item.get("color"))
+        if available is not None and available < item["quantity"]:
             raise HTTPException(
                 status_code=400, detail=f"Stock insuffisant pour {product['name']}"
             )
@@ -1020,13 +1239,20 @@ async def create_order(
             {
                 "product_id": product["id"],
                 "name": product["name"],
-                "price": product["price"],
+                "price": get_effective_price(product, item.get("color")),
                 "quantity": item["quantity"],
+                "size": item.get("size"),
+                "color": item.get("color"),
+                "custom_notes": item.get("custom_notes"),
+                "custom_image_base64": item.get("custom_image_base64"),
+                "custom_file_base64": item.get("custom_file_base64"),
+                "custom_file_type": item.get("custom_file_type"),
+                "custom_position": item.get("custom_position"),
                 "classification_id": product.get("classification_id"),
                 "image_url": product.get("image_url"),
             }
         )
-        total += product["price"] * item["quantity"]
+        total += get_effective_price(product, item.get("color")) * item["quantity"]
 
     order_id = str(uuid.uuid4())
     tracking_code = generate_tracking_code()
@@ -1216,7 +1442,7 @@ async def create_stripe_checkout(request: CheckoutRequest, http_request: Request
                     "price_data": {
                         "currency": "eur",
                         "product_data": {
-                            "name": f"Commande Philatelic #{request.order_id[:8]}",
+                            "name": f"Commande MemeWear #{request.order_id[:8]}",
                             "description": f'{len(order["items"])} article(s)',
                         },
                         "unit_amount": int(order["total"] * 100),  # Stripe uses cents
@@ -1286,25 +1512,11 @@ async def get_stripe_payment_status(session_id: str):
                     },
                 )
 
-                # Mark products as sold
+                # Mettre à jour stock / précommandes
                 order = await db.orders.find_one({"id": transaction["order_id"]})
 
                 if order:
-                    for item in order["items"]:
-                        product = await db.products.find_one({"id": item["product_id"]})
-
-                        if product:
-                            new_stock = max(
-                                0, product.get("stock_quantity", 1) - item["quantity"]
-                            )
-                            update_data = {"stock_quantity": new_stock}
-
-                            if new_stock == 0:
-                                update_data["is_sold"] = True
-
-                            await db.products.update_one(
-                                {"id": item["product_id"]}, {"$set": update_data}
-                            )
+                    await apply_order_to_products(order)
 
                     # Clear cart
                     await db.carts.delete_one({"session_id": order.get("session_id")})
@@ -1441,10 +1653,11 @@ async def create_paypal_order(request: CheckoutRequest):
                                 "currency_code": "EUR",
                                 "value": str(round(order["total"], 2)),
                             },
-                            "description": f"Philatelic Curator - Order {request.order_id[:8]}",
+                            "description": f"MemeWear - Order {request.order_id[:8]}",
                         }
                     ],
                     "application_context": {
+                        "brand_name": SITE_NAME,
                         "return_url": f"{request.origin_url}/checkout/success",
                         "cancel_url": f"{request.origin_url}/checkout/cancel?order_id={request.order_id}"
                     },
@@ -1568,21 +1781,10 @@ async def capture_paypal_order(paypal_order_id: str):
                         }
                     },
                 )
-                # Mark products as sold
+                # Mettre à jour stock / précommandes
                 order = await db.orders.find_one({"id": transaction["order_id"]})
                 if order:
-                    for item in order["items"]:
-                        product = await db.products.find_one({"id": item["product_id"]})
-                        if product:
-                            new_stock = max(
-                                0, product.get("stock_quantity", 1) - item["quantity"]
-                            )
-                            update_data = {"stock_quantity": new_stock}
-                            if new_stock == 0:
-                                update_data["is_sold"] = True
-                            await db.products.update_one(
-                                {"id": item["product_id"]}, {"$set": update_data}
-                            )
+                    await apply_order_to_products(order)
                     await db.carts.delete_one({"session_id": order.get("session_id")})
 
                     # Send confirmation email
@@ -2443,14 +2645,25 @@ async def download_customer_order_pdf(tracking_code: str):
 @api_router.get("/admin/stats")
 async def get_admin_stats(admin: Dict = Depends(require_admin)):
     # Product stats by type
-    stamps_count = await db.products.count_documents({"product_type": "stamp", "is_sold": False})
-    envelopes_count = await db.products.count_documents({"product_type": "envelope", "is_sold": False})
+    stamps_count = await db.products.count_documents({"product_type": "meme", "is_sold": False})
+    envelopes_count = await db.products.count_documents({"product_type": "modern", "is_sold": False})
+    custom_count = await db.products.count_documents({"product_type": "custom", "is_sold": False})
     total_products = await db.products.count_documents({})
     available_products = await db.products.count_documents({"is_sold": False})
-    sold_products = await db.products.count_documents({"is_sold": True})
+    sold_out_products = await db.products.count_documents({"is_sold": True})
+
+    # Nombre d'unités réellement vendues (commandes payées) : plus pertinent que
+    # "produits en rupture totale", qui n'arrive presque jamais en stock illimité.
+    units_pipeline = [
+        {"$match": {"payment_status": PaymentStatus.COMPLETED.value}},
+        {"$unwind": "$items"},
+        {"$group": {"_id": None, "total_units": {"$sum": "$items.quantity"}}},
+    ]
+    units_result = await db.orders.aggregate(units_pipeline).to_list(1)
+    units_sold = units_result[0]["total_units"] if units_result else 0
 
     # Low stock products (stock <= 2)
-    low_stock = await db.products.count_documents({"stock_quantity": {"$lte": 2}, "is_sold": False})
+    low_stock = await db.products.count_documents({"stock_quantity": {"$lte": 2}, "is_sold": False, "unlimited_stock": {"$ne": True}})
     
     # Order stats - exclude archived from active counts
     total_orders = await db.orders.count_documents({"is_archived": {"$ne": True}})
@@ -2473,9 +2686,11 @@ async def get_admin_stats(admin: Dict = Depends(require_admin)):
         "products": {
             "total": total_products,
             "available": available_products,
-            "sold": sold_products,
-            "stamps": stamps_count,
-            "envelopes": envelopes_count,
+            "sold": units_sold,
+            "sold_out": sold_out_products,
+            "meme": stamps_count,
+            "modern": envelopes_count,
+            "custom": custom_count,
             "low_stock": low_stock
         },
         "orders": {
@@ -2494,7 +2709,89 @@ async def get_admin_stats(admin: Dict = Depends(require_admin)):
 # ============== ROOT ROUTE ==============
 @api_router.get("/")
 async def root():
-    return {"message": "Philatelic Curator API", "version": "1.2.0"}
+    return {"message": "MemeWear API", "version": "1.0.0"}
+
+
+# ============== CATEGORIES & STYLES (gérés depuis l'admin) ==============
+@api_router.get("/categories", response_model=List[TaxonomyResponse])
+async def get_categories():
+    items = await db.categories.find({}, {"_id": 0}).sort("name", 1).to_list(500)
+    return items
+
+
+@api_router.post("/categories", response_model=TaxonomyResponse)
+async def create_category(item: TaxonomyItem, admin: Dict = Depends(require_admin)):
+    name = item.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Nom requis")
+    existing = await db.categories.find_one({"name": {"$regex": f"^{name}$", "$options": "i"}})
+    if existing:
+        raise HTTPException(status_code=400, detail="Cette catégorie existe déjà")
+    doc = {"id": str(uuid.uuid4()), "name": name}
+    await db.categories.insert_one(doc)
+    return doc
+
+
+@api_router.delete("/categories/{item_id}")
+async def delete_category(item_id: str, admin: Dict = Depends(require_admin)):
+    result = await db.categories.delete_one({"id": item_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Catégorie introuvable")
+    return {"message": "Catégorie supprimée"}
+
+
+@api_router.get("/styles", response_model=List[TaxonomyResponse])
+async def get_styles():
+    items = await db.styles.find({}, {"_id": 0}).sort("name", 1).to_list(500)
+    return items
+
+
+@api_router.post("/styles", response_model=TaxonomyResponse)
+async def create_style(item: TaxonomyItem, admin: Dict = Depends(require_admin)):
+    name = item.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Nom requis")
+    existing = await db.styles.find_one({"name": {"$regex": f"^{name}$", "$options": "i"}})
+    if existing:
+        raise HTTPException(status_code=400, detail="Ce style existe déjà")
+    doc = {"id": str(uuid.uuid4()), "name": name}
+    await db.styles.insert_one(doc)
+    return doc
+
+
+@api_router.delete("/styles/{item_id}")
+async def delete_style(item_id: str, admin: Dict = Depends(require_admin)):
+    result = await db.styles.delete_one({"id": item_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Style introuvable")
+    return {"message": "Style supprimé"}
+
+
+@api_router.get("/colors", response_model=List[TaxonomyResponse])
+async def get_colors():
+    items = await db.colors.find({}, {"_id": 0}).sort("name", 1).to_list(500)
+    return items
+
+
+@api_router.post("/colors", response_model=TaxonomyResponse)
+async def create_color(item: TaxonomyItem, admin: Dict = Depends(require_admin)):
+    name = item.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Nom requis")
+    existing = await db.colors.find_one({"name": {"$regex": f"^{name}$", "$options": "i"}})
+    if existing:
+        raise HTTPException(status_code=400, detail="Cette couleur existe déjà")
+    doc = {"id": str(uuid.uuid4()), "name": name}
+    await db.colors.insert_one(doc)
+    return doc
+
+
+@api_router.delete("/colors/{item_id}")
+async def delete_color(item_id: str, admin: Dict = Depends(require_admin)):
+    result = await db.colors.delete_one({"id": item_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Couleur introuvable")
+    return {"message": "Couleur supprimée"}
 
 
 # CORS must be added BEFORE including router
@@ -2519,12 +2816,36 @@ app.include_router(api_router)
 @app.get("/")
 async def app_root():
     return {
-        "service": "Philatelic Curator API",
+        "service": "MemeWear API",
         "version": "1.2.1",
         "status": "online",
         "api_docs": "/docs",
         "api_base": "/api",
     }
+
+
+@app.on_event("startup")
+async def start_pending_orders_cleanup():
+    """Supprime automatiquement les commandes en attente de paiement laissées
+    à l'abandon (client qui ferme l'onglet sans annuler ni payer)."""
+    async def cleanup_loop():
+        while True:
+            try:
+                cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+                stale = await db.orders.find(
+                    {"payment_status": PaymentStatus.PENDING.value, "created_at": {"$lt": cutoff}},
+                    {"id": 1},
+                ).to_list(1000)
+                if stale:
+                    ids = [o["id"] for o in stale]
+                    await db.orders.delete_many({"id": {"$in": ids}})
+                    await db.payment_transactions.delete_many({"order_id": {"$in": ids}})
+                    logger.info(f"Nettoyage: {len(ids)} commande(s) en attente abandonnée(s) supprimée(s)")
+            except Exception as e:
+                logger.error(f"Erreur nettoyage commandes en attente: {e}")
+            await asyncio.sleep(3600)  # toutes les heures
+
+    asyncio.create_task(cleanup_loop())
 
 
 @app.on_event("shutdown")

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ShoppingCart, Menu, X, User, LogOut } from 'lucide-react';
-import logo from '../assets/PhilatelicCuratorLogoLarge.png';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import {
@@ -13,6 +12,7 @@ import {
 } from './ui/dropdown-menu';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { CUSTOM_TSHIRTS_ENABLED } from '../config/features';
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -22,8 +22,9 @@ const Navbar = () => {
 
   const navLinks = [
     { href: '/', label: 'Accueil' },
-    { href: '/timbres', label: 'Timbres' },
-    { href: '/enveloppes', label: 'Enveloppes' },
+    { href: '/memes', label: 'Memes' },
+    { href: '/modernes', label: 'Modern' },
+    ...(CUSTOM_TSHIRTS_ENABLED ? [{ href: '/personnalise', label: 'Personnalisé' }] : []),
     { href: '/suivi', label: 'Suivi commande' },
   ];
 
@@ -36,10 +37,11 @@ const Navbar = () => {
           {/* Logo */}
           <Link 
             to="/" 
-            className="flex items-center gap-3"
+            className="flex items-center gap-2"
             data-testid="logo-link"
           >
-            <img style={{ maxHeight: '50px' }} src={logo} alt="Philatelic Curator" />
+            <span className="text-2xl">👕</span>
+            <span className="font-serif text-xl font-bold text-foreground">MemeWear</span>
           </Link>
 
           {/* Desktop Navigation */}

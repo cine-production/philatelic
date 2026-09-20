@@ -134,7 +134,7 @@ const CheckoutSuccessPage = () => {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>• Votre commande sera préparée avec soin</li>
                 <li>• Vous recevrez un email avec le numéro de suivi</li>
-                <li>• Livraison estimée : 3-5 jours ouvrés</li>
+                <li>• Livraison estimée : 10 jours ouvrés minimum (fabrication à la demande)</li>
               </ul>
             </div>
 

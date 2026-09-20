@@ -417,16 +417,39 @@ const AdminOrdersPage = () => {
                       {/* Items */}
                       <div>
                         <h4 className="font-semibold mb-2">Articles</h4>
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {order.items.map((item, idx) => (
-                            <div key={idx} className="flex justify-between text-sm">
-                              <div>
-                                <span className="font-mono text-xs bg-primary/10 text-primary px-1 rounded mr-2">
-                                  {item.classification_id || 'N/A'}
-                                </span>
-                                {item.name}
+                            <div key={idx} className="text-sm border-b border-border/50 pb-2 last:border-0">
+                              <div className="flex justify-between">
+                                <div>
+                                  {item.name}
+                                  {(item.size || item.color) && (
+                                    <span className="text-muted-foreground ml-1">
+                                      ({[item.size, item.color].filter(Boolean).join(' • ')})
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="font-mono">{item.price.toFixed(2)} €</span>
                               </div>
-                              <span className="font-mono">{item.price.toFixed(2)} €</span>
+                              {item.custom_notes && (
+                                <p className="text-xs text-muted-foreground italic mt-1">
+                                  "{item.custom_notes}"
+                                </p>
+                              )}
+                              {item.custom_file_base64 && (
+                                <a
+                                  href={item.custom_file_base64}
+                                  download={`design-client-${idx + 1}.${item.custom_file_type === 'application/pdf' ? 'pdf' : 'png'}`}
+                                  className="text-xs text-primary hover:underline inline-block mt-1"
+                                >
+                                  📎 Télécharger le fichier client ({item.custom_file_type === 'application/pdf' ? 'PDF' : 'PNG'})
+                                </a>
+                              )}
+                              {item.custom_position && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Position choisie : x={Math.round(item.custom_position.x)}%, y={Math.round(item.custom_position.y)}%, taille={Math.round(item.custom_position.scale)}%
+                                </p>
+                              )}
                             </div>
                           ))}
                         </div>

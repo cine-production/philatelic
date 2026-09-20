@@ -38,23 +38,15 @@ import {
   DialogTitle,
 } from '../components/ui/dialog';
 import { useAuth } from '../context/AuthContext';
-import { aiApi, productsApi } from '../lib/api';
+import { aiApi, productsApi, categoriesApi, stylesApi, colorsApi } from '../lib/api';
 import { toast } from 'sonner';
 
-const conditionLabels = {
-  mint: 'Neuf',
-  excellent: 'Excellent',
-  good: 'Bon',
-  fair: 'Correct',
-  poor: 'Usé'
-};
-
 const rarityLabels = {
-  common: 'Commun',
-  uncommon: 'Peu commun',
-  rare: 'Rare',
-  very_rare: 'Très rare',
-  exceptional: 'Exceptionnel'
+  common: 'Standard',
+  uncommon: 'Petite série',
+  rare: 'Édition limitée',
+  very_rare: 'Édition très limitée',
+  exceptional: 'Collector'
 };
 
 const AdminAddProductPage = () => {
@@ -74,16 +66,21 @@ const AdminAddProductPage = () => {
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [saving, setSaving] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [styles, setStyles] = useState([]);
+  const [colorOptions, setColorOptions] = useState([]);
+  const [newImageUrl, setNewImageUrl] = useState('');
   
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    product_type: 'stamp',
-    condition: 'good',
+    product_type: 'meme',
+    condition: 'excellent',
     is_obliterated: false,
     year: '',
-    country: '',
+    country: 'France',
     category: '',
+    style: '',
     rarity: 'common',
     price: '',
     estimated_value: '',
@@ -91,8 +88,16 @@ const AdminAddProductPage = () => {
     print_quantity: '',
     dimensions: '',
     image_url: '',
+    images: [],
     stock_quantity: 1,
-    classification_id: ''
+    unlimited_stock: true,
+    is_preorder: true,
+    preorder_threshold: '',
+    classification_id: '',
+    sizes: ['S', 'M', 'L', 'XL'],
+    colors: [],
+    color_variants: [],
+    is_customizable: false
   });
 
   const [aiConfidence, setAiConfidence] = useState(0);
@@ -102,6 +107,29 @@ const AdminAddProductPage = () => {
       navigate('/admin/login');
     }
   }, [isAuthenticated, isAdmin, authLoading, navigate]);
+
+  useEffect(() => {
+    const fetchTaxonomies = async () => {
+      try {
+        const [catRes, styleRes, colorRes] = await Promise.all([
+          categoriesApi.getAll(),
+          stylesApi.getAll(),
+          colorsApi.getAll(),
+        ]);
+        setCategories(catRes.data);
+        setStyles(styleRes.data);
+        setColorOptions(colorRes.data);
+      } catch (error) {
+        console.error('Failed to fetch categories/styles/colors:', error);
+      }
+    };
+    fetchTaxonomies();
+  }, []);
+
+  // La personnalisation n'est possible que pour le type "custom" (bases dédiées)
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, is_customizable: prev.product_type === 'custom' }));
+  }, [formData.product_type]);
 
   useEffect(() => {
     const checkAI = async () => {
@@ -240,7 +268,7 @@ const AdminAddProductPage = () => {
       setFormData({
         name: autoName,
         description: analysis.description || '',
-        product_type: 'stamp', // Will be detected by AI in future
+        product_type: 'meme',
         condition: analysis.condition || 'good',
         is_obliterated: analysis.is_obliterated || false,
         year: analysis.year?.toString() || '',
@@ -253,7 +281,7 @@ const AdminAddProductPage = () => {
         print_quantity: '',
         dimensions: '',
         image_url: imageDataUrl,
-        tock_quantity: 1,
+        stock_quantity: 1,
         classification_id: analysis.classification_id || ''
       });
       
@@ -286,7 +314,7 @@ const AdminAddProductPage = () => {
     if (analysis.year) parts.push(analysis.year);
     if (analysis.is_obliterated) parts.push('Oblitéré');
     
-    if (parts.length === 0) return 'Timbre de collection';
+    if (parts.length === 0) return 'T-shirt personnalisé';
     return parts.join(' - ');
   };
 
@@ -304,12 +332,13 @@ const AdminAddProductPage = () => {
     setFormData({
       name: '',
       description: '',
-      product_type: 'stamp',
-      condition: 'good',
+      product_type: 'meme',
+      condition: 'excellent',
       is_obliterated: false,
       year: '',
-      country: '',
+      country: 'France',
       category: '',
+      style: '',
       rarity: 'common',
       price: '',
       estimated_value: '',
@@ -317,17 +346,23 @@ const AdminAddProductPage = () => {
       print_quantity: '',
       dimensions: '',
       image_url: '',
-      tock_quantity: 1,
-      classification_id: ''
+      stock_quantity: 1,
+      unlimited_stock: true,
+      is_preorder: true,
+      preorder_threshold: '',
+      classification_id: '',
+      sizes: ['S', 'M', 'L', 'XL'],
+      colors: ['Noir', 'Blanc'],
+      is_customizable: false
     });
     setAiConfidence(0);
     setStep('capture');
   };
 
   const handleSave = async () => {
-    if (!formData.name || !formData.price || !formData.country) {
+    if (!formData.name || !formData.price || !formData.category) {
       toast.error('Veuillez remplir les champs obligatoires', {
-        description: 'Nom, Prix et Pays sont requis'
+        description: 'Nom, Prix et Catégorie sont requis'
       });
       return;
     }
@@ -341,7 +376,8 @@ const AdminAddProductPage = () => {
         price: parseFloat(formData.price),
         estimated_value: formData.estimated_value ? parseFloat(formData.estimated_value) : parseFloat(formData.price),
         print_quantity: formData.print_quantity ? parseInt(formData.print_quantity) : null,
-        tock_quantity: formData.stock_quantity ? parseInt(formData.stock_quantity) : 1
+        stock_quantity: formData.stock_quantity ? parseInt(formData.stock_quantity) : 1,
+        preorder_threshold: formData.preorder_threshold ? parseInt(formData.preorder_threshold) : null
       };
       
       await productsApi.create(productData);
@@ -492,7 +528,7 @@ const AdminAddProductPage = () => {
                   Photographier le produit
                 </h2>
                 <p className="text-muted-foreground">
-                  Prenez une photo ou importez une image de votre timbre ou enveloppe
+                  Prenez une photo ou importez le visuel de votre t-shirt
                 </p>
               </div>
 
@@ -738,97 +774,334 @@ const AdminAddProductPage = () => {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="stamp">Timbre</SelectItem>
-                            <SelectItem value="envelope">Enveloppe</SelectItem>
+                            <SelectItem value="meme">Meme / Influenceur</SelectItem>
+                            <SelectItem value="modern">Style Moderne</SelectItem>
+                            <SelectItem value="custom">Personnalisé</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       <div>
-                        <Label>État</Label>
-                        <Select
-                          value={formData.condition}
-                          onValueChange={(v) => handleSelectChange('condition', v)}
+                        <Label>Matière / Coupe</Label>
+                        <Input
+                          name="dimensions"
+                          value={formData.dimensions}
+                          onChange={handleInputChange}
                           disabled={step === 'confirm'}
+                          className={step === 'confirm' ? 'bg-muted' : ''}
+                          placeholder="Ex: Coton bio, coupe regular"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Tailles disponibles</Label>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map((size) => {
+                          const checked = formData.sizes?.includes(size);
+                          return (
+                            <button
+                              key={size}
+                              type="button"
+                              disabled={step === 'confirm'}
+                              onClick={() =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  sizes: checked
+                                    ? prev.sizes.filter((s) => s !== size)
+                                    : [...(prev.sizes || []), size],
+                                }))
+                              }
+                              className={`px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${
+                                checked
+                                  ? 'border-primary bg-primary text-primary-foreground'
+                                  : 'border-border hover:bg-muted'
+                              }`}
+                            >
+                              {size}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Couleurs disponibles</Label>
+                      <div className="flex flex-wrap gap-2 mt-1 mb-3">
+                        {colorOptions.length === 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            Aucune couleur définie. <Link to="/admin/categories" className="text-primary hover:underline">Ajoute des couleurs de base</Link> d'abord.
+                          </p>
+                        )}
+                        {colorOptions.map((c) => {
+                          const checked = formData.colors?.includes(c.name);
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              disabled={step === 'confirm'}
+                              onClick={() => {
+                                setFormData((prev) => {
+                                  const colors = checked
+                                    ? prev.colors.filter((col) => col !== c.name)
+                                    : [...(prev.colors || []), c.name];
+                                  const color_variants = checked
+                                    ? prev.color_variants.filter((v) => v.color !== c.name)
+                                    : [...prev.color_variants, { color: c.name, price: null, stock_quantity: 0, images: [] }];
+                                  return { ...prev, colors, color_variants };
+                                });
+                              }}
+                              className={`px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${
+                                checked
+                                  ? 'border-primary bg-primary text-primary-foreground'
+                                  : 'border-border hover:bg-muted'
+                              }`}
+                            >
+                              {c.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Un encadré par couleur choisie : photo, prix, stock */}
+                      {formData.colors?.length > 0 && (
+                        <div className="grid sm:grid-cols-2 gap-3">
+                          {formData.colors.map((colorName) => {
+                            const variant = formData.color_variants.find((v) => v.color === colorName) || { price: null, stock_quantity: 0, images: [] };
+                            const updateVariant = (patch) => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                color_variants: prev.color_variants.map((v) =>
+                                  v.color === colorName ? { ...v, ...patch } : v
+                                ),
+                              }));
+                            };
+                            return (
+                              <div key={colorName} className="border border-border rounded-lg p-3 space-y-2">
+                                <p className="font-medium text-sm">{colorName}</p>
+
+                                {/* Photos pour cette couleur (plusieurs possibles) */}
+                                <div>
+                                  <div className="flex flex-wrap gap-2 mb-2">
+                                    {(variant.images || []).map((img, imgIdx) => (
+                                      <div key={imgIdx} className="relative">
+                                        <img src={img} alt={`${colorName} ${imgIdx + 1}`} className="w-14 h-14 object-cover rounded-md border border-border" />
+                                        <button
+                                          type="button"
+                                          onClick={() => updateVariant({ images: variant.images.filter((_, i) => i !== imgIdx) })}
+                                          className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] leading-none"
+                                        >
+                                          ×
+                                        </button>
+                                      </div>
+                                    ))}
+                                    <label className="w-14 h-14 rounded-md border border-dashed border-border flex items-center justify-center text-xs text-muted-foreground cursor-pointer hover:bg-muted">
+                                      + Ajouter
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        className="hidden"
+                                        disabled={step === 'confirm'}
+                                        onChange={(e) => {
+                                          const files = Array.from(e.target.files || []);
+                                          if (!files.length) return;
+                                          Promise.all(
+                                            files.map(
+                                              (file) =>
+                                                new Promise((resolve) => {
+                                                  const reader = new FileReader();
+                                                  reader.onload = () => resolve(reader.result);
+                                                  reader.readAsDataURL(file);
+                                                })
+                                            )
+                                          ).then((newImages) => {
+                                            updateVariant({ images: [...(variant.images || []), ...newImages] });
+                                          });
+                                          e.target.value = '';
+                                        }}
+                                      />
+                                    </label>
+                                  </div>
+                                </div>
+
+                                {/* Prix spécifique */}
+                                <div>
+                                  <Label className="text-xs">Prix pour cette couleur (€, optionnel)</Label>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder={`Par défaut : ${formData.price || '—'} €`}
+                                    value={variant.price ?? ''}
+                                    onChange={(e) => updateVariant({ price: e.target.value === '' ? null : parseFloat(e.target.value) })}
+                                    className="h-8"
+                                    disabled={step === 'confirm'}
+                                  />
+                                </div>
+
+                                {/* Stock (si pas illimité) */}
+                                {!formData.unlimited_stock && (
+                                  <div>
+                                    <Label className="text-xs">Stock disponible</Label>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      value={variant.stock_quantity}
+                                      onChange={(e) => updateVariant({ stock_quantity: parseInt(e.target.value) || 0 })}
+                                      className="h-8"
+                                      disabled={step === 'confirm'}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <Label>Autres photos de présentation (galerie générale)</Label>
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <label className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-border text-sm text-muted-foreground cursor-pointer hover:bg-muted">
+                          + Importer des photos
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            disabled={step === 'confirm'}
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              if (!files.length) return;
+                              Promise.all(
+                                files.map(
+                                  (file) =>
+                                    new Promise((resolve) => {
+                                      const reader = new FileReader();
+                                      reader.onload = () => resolve(reader.result);
+                                      reader.readAsDataURL(file);
+                                    })
+                                )
+                              ).then((newImages) =>
+                                setFormData((prev) => ({ ...prev, images: [...prev.images, ...newImages] }))
+                              );
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                        <span className="text-xs text-muted-foreground">ou</span>
+                        <Input
+                          value={newImageUrl}
+                          onChange={(e) => setNewImageUrl(e.target.value)}
+                          placeholder="Coller une URL d'image"
+                          disabled={step === 'confirm'}
+                          className="max-w-xs"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={step === 'confirm' || !newImageUrl.trim()}
+                          onClick={() => {
+                            setFormData((prev) => ({ ...prev, images: [...prev.images, newImageUrl.trim()] }));
+                            setNewImageUrl('');
+                          }}
                         >
-                          <SelectTrigger className={step === 'confirm' ? 'bg-muted' : ''}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(conditionLabels).map(([value, label]) => (
-                              <SelectItem key={value} value={value}>{label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          Ajouter
+                        </Button>
                       </div>
+                      {formData.images?.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {formData.images.map((img, idx) => (
+                            <div key={idx} className="relative">
+                              <img src={img} alt={`Photo ${idx + 1}`} className="w-16 h-16 object-cover rounded-md border border-border" />
+                              <button
+                                type="button"
+                                onClick={() => setFormData((prev) => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }))}
+                                className="absolute -top-2 -right-2 bg-destructive text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        La photo capturée/importée plus haut reste la photo principale. Celles-ci s'ajoutent à la galerie.
+                      </p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label>Pays *</Label>
-                        <Input
-                          name="country"
-                          value={formData.country}
-                          onChange={handleInputChange}
-                          disabled={step === 'confirm'}
-                          className={step === 'confirm' ? 'bg-muted' : ''}
-                          data-testid="product-country"
-                        />
-                      </div>
-
-                      <div>
-                        <Label>Année</Label>
-                        <Input
-                          name="year"
-                          type="number"
-                          value={formData.year}
-                          onChange={handleInputChange}
-                          disabled={step === 'confirm'}
-                          className={step === 'confirm' ? 'bg-muted' : ''}
-                          data-testid="product-year"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>Catégorie</Label>
-                        <Input
-                          name="category"
+                        <Label>Catégorie *</Label>
+                        <Select
                           value={formData.category}
-                          onChange={handleInputChange}
-                          disabled={step === 'confirm'}
-                          className={step === 'confirm' ? 'bg-muted' : ''}
-                        />
-                      </div>
-
-                      <div>
-                        <Label>Rareté</Label>
-                        <Select
-                          value={formData.rarity}
-                          onValueChange={(v) => handleSelectChange('rarity', v)}
+                          onValueChange={(v) => handleSelectChange('category', v)}
                           disabled={step === 'confirm'}
                         >
                           <SelectTrigger className={step === 'confirm' ? 'bg-muted' : ''}>
-                            <SelectValue />
+                            <SelectValue placeholder="Choisir une catégorie" />
                           </SelectTrigger>
                           <SelectContent>
-                            {Object.entries(rarityLabels).map(([value, label]) => (
-                              <SelectItem key={value} value={value}>{label}</SelectItem>
+                            {categories.map((c) => (
+                              <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
+                        <Link to="/admin/categories" className="text-xs text-primary hover:underline mt-1 inline-block">
+                          + Gérer les catégories
+                        </Link>
+                      </div>
+
+                      <div>
+                        <Label>Style</Label>
+                        <Select
+                          value={formData.style || ''}
+                          onValueChange={(v) => handleSelectChange('style', v)}
+                          disabled={step === 'confirm'}
+                        >
+                          <SelectTrigger className={step === 'confirm' ? 'bg-muted' : ''}>
+                            <SelectValue placeholder="Choisir un style" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {styles.map((s) => (
+                              <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Link to="/admin/categories" className="text-xs text-primary hover:underline mt-1 inline-block">
+                          + Gérer les styles
+                        </Link>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <Label className="cursor-pointer">Oblitéré</Label>
-                      <Switch
-                        checked={formData.is_obliterated}
-                        onCheckedChange={(checked) => handleSelectChange('is_obliterated', checked)}
+                    <div>
+                      <Label>Édition</Label>
+                      <Select
+                        value={formData.rarity}
+                        onValueChange={(v) => handleSelectChange('rarity', v)}
                         disabled={step === 'confirm'}
-                      />
+                      >
+                        <SelectTrigger className={step === 'confirm' ? 'bg-muted' : ''}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(rarityLabels).map(([value, label]) => (
+                            <SelectItem key={value} value={value}>{label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+
+                    {formData.product_type === 'custom' && (
+                      <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                        <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
+                        <p className="text-sm text-muted-foreground">
+                          Ce produit est une <strong>base personnalisable</strong> : le client pourra envoyer
+                          son propre visuel (PNG/PDF) dessus. C'est automatique pour le type "Personnalisé".
+                        </p>
+                      </div>
+                    )}
 
                     <Separator />
 
@@ -848,7 +1121,7 @@ const AdminAddProductPage = () => {
                       </div>
 
                       <div>
-                        <Label>Valeur estimée (€)</Label>
+                        <Label>Prix barré (€, optionnel)</Label>
                         <Input
                           name="estimated_value"
                           type="number"
@@ -861,8 +1134,56 @@ const AdminAddProductPage = () => {
                       </div>
                     </div>
 
-                    
-                    <div className="grid grid-cols-2 gap-4">
+                    <Separator />
+
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div>
+                        <Label className="cursor-pointer">Précommande</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Ce t-shirt est fabriqué une fois un seuil de commandes atteint
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.is_preorder}
+                        onCheckedChange={(checked) => handleSelectChange('is_preorder', checked)}
+                        disabled={step === 'confirm'}
+                      />
+                    </div>
+
+                    {formData.is_preorder && (
+                      <div>
+                        <Label>Seuil de précommandes avant fabrication</Label>
+                        <Input
+                          name="preorder_threshold"
+                          type="number"
+                          min="1"
+                          value={formData.preorder_threshold}
+                          onChange={handleInputChange}
+                          disabled={step === 'confirm'}
+                          className={step === 'confirm' ? 'bg-muted' : ''}
+                          placeholder="Ex: 10"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Laisse vide si tu ne veux pas afficher de seuil précis.
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div>
+                        <Label className="cursor-pointer">Stock illimité</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Fabriqué à la demande : pas de limite de quantité vendable
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.unlimited_stock}
+                        onCheckedChange={(checked) => handleSelectChange('unlimited_stock', checked)}
+                        disabled={step === 'confirm'}
+                      />
+                    </div>
+
+                    {!formData.unlimited_stock && (
                       <div>
                         <Label>Quantité en stock</Label>
                         <Input
@@ -876,23 +1197,7 @@ const AdminAddProductPage = () => {
                           data-testid="product-stock"
                         />
                       </div>
-
-                      <div>
-                        <Label>ID Classification</Label>
-                        <Input
-                          name="classification_id"
-                          value={formData.classification_id}
-                          onChange={handleInputChange}
-                          disabled={step === 'confirm'}
-                          className={`font-mono ${step === 'confirm' ? 'bg-muted' : ''}`}
-                          placeholder="Ex: 1960-FR-COM-001"
-                          data-testid="product-classification-id"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Format: ANNÉE-PAYS-CATÉGORIE-NUMÉRO
-                        </p>
-                      </div>
-                    </div>
+                    )}
 
                     <div>
                       <Label>Description</Label>
@@ -974,7 +1279,7 @@ const AdminAddProductPage = () => {
                 <div>
                   <h4 className="font-semibold">{formData.name}</h4>
                   <p className="text-sm text-muted-foreground">
-                    {formData.country} {formData.year && `• ${formData.year}`}
+                    {formData.category} {formData.sizes?.length ? `• ${formData.sizes.join('/')}` : ''}
                   </p>
                   <p className="font-mono font-semibold text-primary mt-1">
                     {formData.price} €

@@ -124,7 +124,7 @@ const AdminOrderPrintPage = () => {
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h2 className="text-2xl font-bold mb-1">FICHE DE PRÉPARATION</h2>
-                <p className="text-lg">Philatelic Curator</p>
+                <p className="text-lg">MemeWear</p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Code de suivi client</p>
@@ -282,7 +282,7 @@ const AdminOrderPrintPage = () => {
           {/* Footer */}
           <div className="text-center text-sm text-muted-foreground mt-8 pt-4 border-t">
             <p>Imprimé le {new Date().toLocaleDateString('fr-FR')} à {new Date().toLocaleTimeString('fr-FR')}</p>
-            <p>Philatelic Curator - Fiche de préparation commande</p>
+            <p>MemeWear - Fiche de préparation commande</p>
           </div>
         </div>
       </div>

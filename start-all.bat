@@ -8,8 +8,8 @@ start "MongoDB" cmd /k "cd /d "C:\Program Files\MongoDB\Server\7.0\bin" && mongo
 timeout /t 5 /nobreak
 
 echo [2/5] Démarrage Ollama (IA)...
-start "Ollama" cmd /k "ollama serve"
-timeout /t 3 /nobreak
+echo start "Ollama" cmd /k "ollama serve"
+echo timeout /t 3 /nobreak
 
 echo [3/5] Démarrage Backend API...
 start "Backend" cmd /k "cd /d C:\Users\ServeurStock\Documents\GitHub\philatelic\backend && .\venv\Scripts\activate && uvicorn server:app --host 0.0.0.0 --port 8001"

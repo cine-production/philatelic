@@ -6,8 +6,16 @@ import { Sheet, SheetContent, SheetTrigger } from '../components/ui/sheet';
 import ProductCard from '../components/ProductCard';
 import FilterSidebar from '../components/FilterSidebar';
 import { productsApi } from '../lib/api';
+import { setPageMeta } from '../lib/seo';
 
 const MemesPage = () => {
+  useEffect(() => {
+    setPageMeta(
+      'T-shirts Memes & Influenceurs — MemeWear',
+      'Les designs les plus drôles inspirés des memes et des influenceurs du moment, en t-shirt.'
+    );
+  }, []);
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ countries: [], categories: [] });

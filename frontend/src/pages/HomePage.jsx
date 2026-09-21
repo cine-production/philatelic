@@ -3,8 +3,16 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { ArrowRight, Laugh, Sparkles, Shield, Truck } from 'lucide-react';
 import { CUSTOM_TSHIRTS_ENABLED } from '../config/features';
+import { useEffect } from 'react';
+import { setPageMeta } from '../lib/seo';
 
 const HomePage = () => {
+  useEffect(() => {
+  setPageMeta(
+    'MemeWear — T-shirts Memes & Modern',
+    'Des t-shirts drôles inspirés des memes et des influenceurs, et des designs modernes épurés.'
+  );
+}, []);
   return (
     <div className="animate-fade-in" data-testid="home-page">
       {/* Hero Section */}

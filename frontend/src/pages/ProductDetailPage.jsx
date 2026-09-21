@@ -6,6 +6,7 @@ import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
 import { productsApi } from '../lib/api';
 import { processDesignFile } from '../lib/designPreview';
+import { setPageMeta } from '../lib/seo';
 import ShirtDesignPositioner, { DEFAULT_POSITION } from '../components/ShirtDesignPositioner';
 import { CUSTOM_TSHIRTS_ENABLED } from '../config/features';
 import { useCart } from '../context/CartContext';
@@ -72,6 +73,10 @@ const ProductDetailPage = () => {
         setLoading(true);
         const response = await productsApi.getById(id);
         setProduct(response.data);
+        setPageMeta(
+          `${response.data.name} — MemeWear`,
+          (response.data.description || '').slice(0, 155)
+        );
         setSelectedSize(response.data.sizes?.[0] || null);
         setSelectedColor(response.data.colors?.[0] || null);
         setActiveImageIndex(0);

@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /panier
+
+Sitemap: https://memewear.servicetiers.fr/sitemap.xml

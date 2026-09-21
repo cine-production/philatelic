@@ -6,8 +6,16 @@ import { Sheet, SheetContent, SheetTrigger } from '../components/ui/sheet';
 import ProductCard from '../components/ProductCard';
 import FilterSidebar from '../components/FilterSidebar';
 import { productsApi } from '../lib/api';
+import { setPageMeta } from '../lib/seo';
 
 const ModernPage = () => {
+  useEffect(() => {
+    setPageMeta(
+      'T-shirts Style Moderne — MemeWear',
+      'Coupes épurées et designs minimalistes pour un look actuel, en t-shirt.'
+    );
+  }, []);
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ countries: [], categories: [] });
